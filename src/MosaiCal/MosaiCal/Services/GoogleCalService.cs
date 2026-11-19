@@ -17,7 +17,11 @@ using System.Threading.Tasks;
 
 namespace MosaiCal.Services;
 
-public sealed record GoogleCalendarSource(string AccountEmail, string CalendarId, string DisplayName);
+public sealed record GoogleCalendarSource(
+    string AccountEmail,
+    string CalendarId,
+    string DisplayName,
+    string? BackgroundColor = null);
 
 public sealed class GoogleCalService
 {
@@ -204,15 +208,17 @@ public sealed class GoogleCalService
         });
     }
 
-    public async Task<IReadOnlyList<GoogleCalendarSource>> GetCalendarSourcesAsync()
+    public async Task<IReadOnlyList<GoogleCalendarSource>> GetCalendarSourcesAsync(
+        CalendarService? service = null,
+        CancellationToken cancellationToken = default)
     {
-        GoogleAccountProfile? profile = await GetAccountProfileAsync();
+        GoogleAccountProfile? profile = await GetAccountProfileAsync(cancellationToken);
         if (profile == null || string.IsNullOrWhiteSpace(profile.Email))
         {
             return Array.Empty<GoogleCalendarSource>();
         }
 
-        CalendarService service = await CreateCalendarServiceAsync();
+        service ??= await CreateCalendarServiceAsync(cancellationToken);
         List<GoogleCalendarSource> sources = new();
         string? pageToken = null;
         do
@@ -220,7 +226,7 @@ public sealed class GoogleCalService
             CalendarListResource.ListRequest request = service.CalendarList.List();
             request.MaxResults = ApiPageSize;
             request.PageToken = pageToken;
-            CalendarList calendars = await request.ExecuteAsync();
+            CalendarList calendars = await request.ExecuteAsync(cancellationToken);
             if (calendars.Items != null)
             {
                 foreach (CalendarListEntry calendar in calendars.Items)
@@ -233,7 +239,8 @@ public sealed class GoogleCalService
                     sources.Add(new GoogleCalendarSource(
                         profile.Email,
                         calendar.Primary == true ? PrimaryCalendarId : calendar.Id,
-                        string.IsNullOrWhiteSpace(calendar.Summary) ? calendar.Id : calendar.Summary));
+                        string.IsNullOrWhiteSpace(calendar.Summary) ? calendar.Id : calendar.Summary,
+                        calendar.BackgroundColor));
                 }
             }
 
@@ -254,58 +261,100 @@ public sealed class GoogleCalService
         DateTimeOffset end = now.AddDays(7);
         List<IDHelper.EventID> sourceKeys = new();
         int maximumEvents = Math.Max(1, _options.MaximumEventsPerRefresh);
-        int fetchedCount = 0;
-        string accountEmail = (await GetAccountProfileAsync(cancellationToken))?.Email ?? string.Empty;
+        bool isComplete = true;
+
+        IReadOnlyList<GoogleCalendarSource> calendars = await GetCalendarSourcesAsync(service, cancellationToken);
+        if (calendars.Count == 0)
+        {
+            string fallbackEmail = (await GetAccountProfileAsync(cancellationToken))?.Email ?? string.Empty;
+            calendars = new[] { new GoogleCalendarSource(fallbackEmail, PrimaryCalendarId, "Google Calendar") };
+        }
 
         ColorsResource.GetRequest colorsRequest = service.Colors.Get();
         Colors colors = await colorsRequest.ExecuteAsync(cancellationToken);
 
-        string? pageToken = null;
-        do
+        foreach (GoogleCalendarSource calendar in calendars)
         {
-            EventsResource.ListRequest eventsRequest = service.Events.List(PrimaryCalendarId);
-            eventsRequest.TimeMinDateTimeOffset = now;
-            eventsRequest.TimeMaxDateTimeOffset = end;
-            eventsRequest.MaxResults = Math.Min(ApiPageSize, maximumEvents - fetchedCount);
-            eventsRequest.SingleEvents = true;
-            eventsRequest.OrderBy = EventsResource.ListRequest.OrderByEnum.StartTime;
-            eventsRequest.PageToken = pageToken;
+            cancellationToken.ThrowIfCancellationRequested();
+            string calendarDefaultColor = string.IsNullOrWhiteSpace(calendar.BackgroundColor)
+                ? _options.DefaultColor
+                : calendar.BackgroundColor;
+            int fetchedCount = 0;
+            string? pageToken = null;
 
-            Events events = await eventsRequest.ExecuteAsync(cancellationToken);
-            if (events.Items != null)
+            try
             {
-                foreach (Event ev in events.Items)
+                do
                 {
-                    if (string.IsNullOrWhiteSpace(ev.Id))
+                    EventsResource.ListRequest eventsRequest = service.Events.List(calendar.CalendarId);
+                    eventsRequest.TimeMinDateTimeOffset = now;
+                    eventsRequest.TimeMaxDateTimeOffset = end;
+                    eventsRequest.MaxResults = Math.Min(ApiPageSize, maximumEvents - fetchedCount);
+                    eventsRequest.SingleEvents = true;
+                    eventsRequest.OrderBy = EventsResource.ListRequest.OrderByEnum.StartTime;
+                    eventsRequest.PageToken = pageToken;
+
+                    Events events = await eventsRequest.ExecuteAsync(cancellationToken);
+                    if (events.Items != null)
                     {
-                        throw new InvalidDataException("Google Calendar returned an event without an ID.");
+                        foreach (Event ev in events.Items)
+                        {
+                            if (string.IsNullOrWhiteSpace(ev.Id))
+                            {
+                                throw new InvalidDataException("Google Calendar returned an event without an ID.");
+                            }
+
+                            IDHelper.EventID id = IDHelper.GetEventID(ev.Id, calendar.CalendarId, ProviderName);
+                            sourceKeys.Add(id);
+                            calendarData[id] = NormalizeEvent(
+                                ev,
+                                colors,
+                                calendarDefaultColor,
+                                id,
+                                calendar.AccountEmail,
+                                calendar.CalendarId);
+                            fetchedCount++;
+                        }
                     }
 
-                    IDHelper.EventID id = IDHelper.GetEventID(ev.Id, PrimaryCalendarId, ProviderName);
-                    sourceKeys.Add(id);
-                    calendarData[id] = NormalizeEvent(ev, colors, _options.DefaultColor, id, accountEmail);
-                    fetchedCount++;
+                    pageToken = events.NextPageToken;
+                    if (fetchedCount >= maximumEvents)
+                    {
+                        LoggerService.Log(
+                            $"Google Calendar refresh of '{calendar.DisplayName}' reached the configured limit of {maximumEvents} events; results may be truncated.",
+                            LoggerStatusEnum.WARNING);
+                        if (!string.IsNullOrEmpty(pageToken))
+                        {
+                            isComplete = false;
+                        }
+                        break;
+                    }
                 }
+                while (!string.IsNullOrEmpty(pageToken));
+            }
+            catch (Google.GoogleApiException exception)
+            {
+                LoggerService.LogException(
+                    $"GoogleCalService: Failed to fetch events for calendar '{calendar.DisplayName}'.",
+                    exception);
             }
 
-            pageToken = events.NextPageToken;
-            if (fetchedCount >= maximumEvents)
+            if (!isComplete)
             {
-                LoggerService.Log(
-                    $"Google Calendar refresh reached the configured limit of {maximumEvents} events; results may be truncated.",
-                    LoggerStatusEnum.WARNING);
-                if (!string.IsNullOrEmpty(pageToken))
-                {
-                    return (calendarData, sourceKeys, false);
-                }
+                return (calendarData, sourceKeys, false);
             }
         }
-        while (!string.IsNullOrEmpty(pageToken));
 
         return (calendarData, sourceKeys, true);
     }
 
-    private static CalEventDto NormalizeEvent(Event ev, Colors colors, string defaultColor, IDHelper.EventID evId, string accountEmail)
+    private static CalEventDto NormalizeEvent(
+        Event ev,
+        Colors colors,
+        string defaultColor,
+        IDHelper.EventID evId,
+        string accountEmail,
+        string calendarId)
     {
         DateTimeOffset start = ParseEventStart(ev);
         string color = GetEventColor(ev, colors, defaultColor);
@@ -322,7 +371,7 @@ public sealed class GoogleCalService
             Color = color,
             Source = source,
             Provider = ProviderName,
-            CalendarId = PrimaryCalendarId,
+            CalendarId = calendarId,
             GoogleAccountEmail = accountEmail
         };
     }

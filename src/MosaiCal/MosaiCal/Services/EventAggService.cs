@@ -207,7 +207,7 @@ internal static class EventAggService
         Dictionary<IDHelper.EventID, CalEventDto> fullList = await ReadUpcomingEventsMessagePackAsync(null);
         foreach (var(id, calEvent) in fullList)
         {
-            if (enabledSources.Contains(calEvent.LongSource) ||
+            if (enabledSources.Contains(calEvent.LongSource) &&
                 calEvent.Datetime <= targetDay)
             { continue; }
             fullList.Remove(id);
@@ -299,7 +299,7 @@ internal static class EventAggService
             SettingsRetriever.GetMainDataPath(),
             cancellationToken);
         foreach (IDHelper.EventID id in calendarData
-            .Where(pair => IsGooglePrimaryEvent(pair.Value))
+            .Where(pair => IsGoogleEvent(pair.Value))
             .Select(pair => pair.Key)
             .ToList())
         {
@@ -317,10 +317,9 @@ internal static class EventAggService
         return true;
     }
 
-    private static bool IsGooglePrimaryEvent(CalEventDto calendarEvent)
+    private static bool IsGoogleEvent(CalEventDto calendarEvent)
     {
-        if (calendarEvent.Provider == GoogleCalService.ProviderName &&
-            calendarEvent.CalendarId == GoogleCalService.PrimaryCalendarId)
+        if (calendarEvent.Provider == GoogleCalService.ProviderName)
         {
             return true;
         }
