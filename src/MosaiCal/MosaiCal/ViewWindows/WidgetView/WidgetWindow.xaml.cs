@@ -87,12 +87,12 @@ public sealed partial class WidgetWindow : Window
         CanvasCalLinkInput.Text = SettingsRetriever.GetCanvasICSLink();
         UpdateCanvasConnectButtonText();
         _isUpdatingSourceControls = true;
-        EnableGoogle.IsChecked = SettingsRetriever.GetGoogleEnabled();
-        EnableCanvas.IsChecked = SettingsRetriever.GetCanvasEnabled();
+        EnableGoogle.IsOn = SettingsRetriever.GetGoogleEnabled();
+        EnableCanvas.IsOn = SettingsRetriever.GetCanvasEnabled();
         _isUpdatingSourceControls = false;
         _isUpdatingPrimaryViewControl = true;
-        EnablePrimaryView.IsChecked = SettingsRetriever.GetPrimaryViewEnabled();
-        EnablePinnedView.IsChecked = SettingsRetriever.GetPinnedViewEnabled();
+        EnablePrimaryView.IsOn = SettingsRetriever.GetPrimaryViewEnabled();
+        EnablePinnedView.IsOn = SettingsRetriever.GetPinnedViewEnabled();
         EnablePrimaryView.IsEnabled = false;
         EnablePinnedView.IsEnabled = false;
         PrimaryViewSelector.SelectedIndex = SettingsRetriever.GetPrimaryView() switch
@@ -166,8 +166,8 @@ public sealed partial class WidgetWindow : Window
             }
 
             _isUpdatingPrimaryViewControl = true;
-            EnablePrimaryView.IsChecked = false;
-            EnablePinnedView.IsChecked = false;
+            EnablePrimaryView.IsOn = false;
+            EnablePinnedView.IsOn = false;
             _isUpdatingPrimaryViewControl = false;
         }
 
@@ -561,7 +561,7 @@ public sealed partial class WidgetWindow : Window
         await EventAggService.GetGoogleCalService().SignOutAsync();
         await SetGoogleEnabledAsync(false);
         _isUpdatingSourceControls = true;
-        EnableGoogle.IsChecked = false;
+        EnableGoogle.IsOn = false;
         _isUpdatingSourceControls = false;
         await UpdateConnectionStatusAsync(false);
         await UpdateViewSourceAvailabilityAsync();
@@ -572,7 +572,7 @@ public sealed partial class WidgetWindow : Window
         await EventAggService.GetGoogleCalService().SignOutAsync();
         await SetGoogleEnabledAsync(false);
         _isUpdatingSourceControls = true;
-        EnableGoogle.IsChecked = false;
+        EnableGoogle.IsOn = false;
         _isUpdatingSourceControls = false;
         await GoogleSignInAsync();
     }
@@ -589,7 +589,7 @@ public sealed partial class WidgetWindow : Window
             {
                 await SetGoogleEnabledAsync(true, reloadGoogleService: true);
                 _isUpdatingSourceControls = true;
-                EnableGoogle.IsChecked = true;
+                EnableGoogle.IsOn = true;
                 _isUpdatingSourceControls = false;
             }
 
@@ -639,6 +639,7 @@ public sealed partial class WidgetWindow : Window
         CanvasConnectButtonText.Text = IsCanvasCalendarConfigured(SettingsRetriever.GetCanvasICSLink())
             ? "Update"
             : "Connect Calendar";
+        UpdateCanvasSourceRow();
     }
 
     private async void RefreshCanvasSources(object sender, RoutedEventArgs e)
@@ -728,6 +729,8 @@ public sealed partial class WidgetWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
 
+        UpdateGoogleSourceRow(connected, email: null);
+
         if (connected)
         {
             GoogleAccountProfile? profile = await EventAggService.GetGoogleCalService().GetAccountProfileAsync();
@@ -737,6 +740,7 @@ public sealed partial class WidgetWindow : Window
                 GoogleProfileEmailText.Text = profile.Email;
                 if (Uri.TryCreate(profile.PictureUrl, UriKind.Absolute, out Uri? pictureUri))
                     GoogleProfileImage.Source = new BitmapImage(pictureUri);
+                UpdateGoogleSourceRow(connected, profile.Email);
             }
         }
     }
@@ -744,6 +748,62 @@ public sealed partial class WidgetWindow : Window
     private void ApplyBackgroundType()
     {
         WindowConfiguration.ApplyBackground(this);
+    }
+
+    private void GoogleToggled(object sender, RoutedEventArgs e)
+    {
+        if (EnableGoogle.IsOn) GoogleEnabled(sender, e); else GoogleDisabled(sender, e);
+    }
+
+    private void CanvasToggled(object sender, RoutedEventArgs e)
+    {
+        if (EnableCanvas.IsOn) CanvasEnabled(sender, e); else CanvasDisabled(sender, e);
+    }
+
+    private void PrimaryViewToggled(object sender, RoutedEventArgs e)
+    {
+        if (EnablePrimaryView.IsOn) PrimaryViewEnabled(sender, e); else PrimaryViewDisabled(sender, e);
+    }
+
+    private void PinnedViewToggled(object sender, RoutedEventArgs e)
+    {
+        if (EnablePinnedView.IsOn) PinnedViewEnabled(sender, e); else PinnedViewDisabled(sender, e);
+    }
+
+    private void SourceSetupClick(object sender, RoutedEventArgs e)
+    {
+        string? target = (sender as FrameworkElement)?.Tag as string;
+        object? item = SettingsNav.MenuItems
+            .OfType<NavigationViewItem>()
+            .FirstOrDefault(navItem => navItem.Tag as string == target);
+        if (item != null)
+        {
+            SettingsNav.SelectedItem = item;
+        }
+    }
+
+    private void UpdateGoogleSourceRow(bool connected, string? email)
+    {
+        GoogleSourceStatus.Text = connected
+            ? string.IsNullOrWhiteSpace(email) ? "Connected" : $"Connected as {email}"
+            : "Not set up";
+        GoogleSetupLink.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        EnableGoogle.IsEnabled = connected;
+
+        _isUpdatingSourceControls = true;
+        EnableGoogle.IsOn = connected && SettingsRetriever.GetGoogleEnabled();
+        _isUpdatingSourceControls = false;
+    }
+
+    private void UpdateCanvasSourceRow()
+    {
+        string link = SettingsRetriever.GetCanvasICSLink();
+        bool configured = IsCanvasCalendarConfigured(link);
+        CanvasSourceStatus.Text = configured && Uri.TryCreate(link, UriKind.Absolute, out Uri? feedUri)
+            ? $"Connected to {feedUri.Host}"
+            : "Not set up";
+        CanvasSetupLink.Visibility = configured ? Visibility.Collapsed : Visibility.Visible;
+        EnableCanvas.IsEnabled = configured;
     }
 
     private async void GoogleEnabled(object sender, RoutedEventArgs e)
@@ -842,7 +902,7 @@ public sealed partial class WidgetWindow : Window
         if (!_hasConfiguredSource)
         {
             _isUpdatingPrimaryViewControl = true;
-            EnablePrimaryView.IsChecked = false;
+            EnablePrimaryView.IsOn = false;
             _isUpdatingPrimaryViewControl = false;
             return;
         }
@@ -869,7 +929,7 @@ public sealed partial class WidgetWindow : Window
         SettingsRetriever.SetPrimaryViewEnabled(false);
         StartupLaunchService.SyncWithSettings();
         _isUpdatingPrimaryViewControl = true;
-        EnablePrimaryView.IsChecked = false;
+        EnablePrimaryView.IsOn = false;
         _isUpdatingPrimaryViewControl = false;
     }
 
@@ -883,7 +943,7 @@ public sealed partial class WidgetWindow : Window
         if (!_hasConfiguredSource)
         {
             _isUpdatingPrimaryViewControl = true;
-            EnablePinnedView.IsChecked = false;
+            EnablePinnedView.IsOn = false;
             _isUpdatingPrimaryViewControl = false;
             return;
         }

@@ -108,9 +108,67 @@
                                       IsExpanded="False"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
-                            <StackPanel Spacing="8" Padding="8,4,8,8">
-                                <CheckBox x:Name="EnableGoogle" Content="Google Calendar" Checked="GoogleEnabled" Unchecked="GoogleDisabled"/>
-                                <CheckBox x:Name="EnableCanvas" Content="Canvas Calendar" Checked="CanvasEnabled" Unchecked="CanvasDisabled"/>
+                            <StackPanel Spacing="12" Padding="8,4,8,8">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="Google Calendar" />
+                                        <TextBlock x:Name="GoogleSourceStatus"
+                                                   Text="Checking connection…"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <HyperlinkButton x:Name="GoogleSetupLink"
+                                                     Grid.Column="1"
+                                                     Content="Set up"
+                                                     Tag="Google"
+                                                     Click="SourceSetupClick"
+                                                     VerticalAlignment="Center"
+                                                     Visibility="Collapsed" />
+                                    <ToggleSwitch x:Name="EnableGoogle"
+                                                  Grid.Column="2"
+                                                  OnContent="On"
+                                                  OffContent="Off"
+                                                  MinWidth="0"
+                                                  IsEnabled="False"
+                                                  AutomationProperties.Name="Use Google Calendar"
+                                                  Toggled="GoogleToggled" />
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="Canvas Calendar" />
+                                        <TextBlock x:Name="CanvasSourceStatus"
+                                                   Text="Not set up"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <HyperlinkButton x:Name="CanvasSetupLink"
+                                                     Grid.Column="1"
+                                                     Content="Set up"
+                                                     Tag="Canvas"
+                                                     Click="SourceSetupClick"
+                                                     VerticalAlignment="Center"
+                                                     Visibility="Collapsed" />
+                                    <ToggleSwitch x:Name="EnableCanvas"
+                                                  Grid.Column="2"
+                                                  OnContent="On"
+                                                  OffContent="Off"
+                                                  MinWidth="0"
+                                                  IsEnabled="False"
+                                                  AutomationProperties.Name="Use Canvas Calendar"
+                                                  Toggled="CanvasToggled" />
+                                </Grid>
                             </StackPanel>
                         </muxc:Expander>
                         <muxc:Expander Header="Views"
@@ -127,14 +185,34 @@
                                     <ComboBoxItem Content="Day"/>
                                     <ComboBoxItem Content="Week"/>
                                 </ComboBox>
-                                <CheckBox x:Name="EnablePrimaryView"
-                                          Content="Enable calendar view"
-                                          Checked="PrimaryViewEnabled"
-                                          Unchecked="PrimaryViewDisabled"/>
-                                <CheckBox x:Name="EnablePinnedView"
-                                          Content="Pin calendar view"
-                                          Checked="PinnedViewEnabled"
-                                          Unchecked="PinnedViewDisabled"/>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Enable calendar view" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Name="EnablePrimaryView"
+                                                  Grid.Column="1"
+                                                  OnContent="On"
+                                                  OffContent="Off"
+                                                  MinWidth="0"
+                                                  AutomationProperties.Name="Enable calendar view"
+                                                  Toggled="PrimaryViewToggled" />
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Pin calendar view" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Name="EnablePinnedView"
+                                                  Grid.Column="1"
+                                                  OnContent="On"
+                                                  OffContent="Off"
+                                                  MinWidth="0"
+                                                  AutomationProperties.Name="Pin calendar view"
+                                                  Toggled="PinnedViewToggled" />
+                                </Grid>
                                 <TextBlock x:Name="ViewSourceRequirementMessage"
                                            Text="Checking configured sources..."
                                            TextWrapping="Wrap" />
