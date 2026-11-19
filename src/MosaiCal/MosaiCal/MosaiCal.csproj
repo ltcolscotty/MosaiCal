@@ -33,9 +33,6 @@
   <Compile Update="ViewWindows\WidgetView\WidgetWindow.xaml.cs">
 		<DependentUpon>WidgetWindow.xaml</DependentUpon>
 	</Compile>
-  <Compile Update="ViewWindows\SettingsView\SettingsWindow.xaml.cs">
-		<DependentUpon>SettingsWindow.xaml</DependentUpon>
-	</Compile>
 	<Compile Update="ViewWindows\DayView\DayViewWindow.xaml.cs">
 		<DependentUpon>DayViewWindow.xaml</DependentUpon>
 	</Compile>
