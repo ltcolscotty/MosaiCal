@@ -43,6 +43,7 @@ public sealed partial class WidgetWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "mosaical-icon.ico"));
         SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
         GoogleSourceCardsList.ItemsSource = GoogleSourceCards;
         CanvasSourceCardsList.ItemsSource = CanvasSourceCards;
