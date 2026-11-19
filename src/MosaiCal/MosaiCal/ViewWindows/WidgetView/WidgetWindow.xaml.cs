@@ -28,6 +28,8 @@ public sealed partial class WidgetWindow : Window
     public ObservableCollection<SourceCustomizationCard> GoogleSourceCards { get; } = new();
     public ObservableCollection<SourceCustomizationCard> CanvasSourceCards { get; } = new();
     private int _customizationCardsRefreshGeneration;
+    private SourceCustomizationCard? _pendingDarknessCard;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _darknessSaveTimer;
 
     private readonly RefreshSchedService _refreshSchedService;
     private readonly IDisposable _shutdownHandler;
@@ -59,6 +61,7 @@ public sealed partial class WidgetWindow : Window
         Closed += (_, _) =>
         {
             LoggerService.Log("WidgetWindow: Closed event received; publishing manager inactive state.");
+            SavePendingImageDarkness(); // don't lose a slider change made just before closing
             ViewWindowManager.SetPrimaryViewManagerActive(false);
             ViewWindowManager.PrimaryViewClosedByUser -= OnPrimaryViewClosedByUser;
             EventAggService.EventsChanged -= OnEventsChanged;
@@ -364,6 +367,7 @@ public sealed partial class WidgetWindow : Window
             ImagePath = imagePath,
             HasImage = !string.IsNullOrWhiteSpace(imagePath),
             BackgroundColor = backgroundColor,
+            ImageDarkness = SourceImageService.Instance.GetImageDarkness(identity),
         };
 
         card.BackgroundBrush = CreateBackgroundBrush(card);
@@ -512,8 +516,73 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
-    public sealed class SourceCustomizationCard
+    private void ImageDarknessChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
+        if (sender is not Slider { DataContext: SourceCustomizationCard card } ||
+            Math.Abs(card.ImageDarkness - e.NewValue) < 0.5)
+        {
+            return;
+        }
+
+        card.ImageDarkness = e.NewValue;
+        if (_pendingDarknessCard != null && !ReferenceEquals(_pendingDarknessCard, card))
+        {
+            SavePendingImageDarkness();
+        }
+
+        _pendingDarknessCard = card;
+        _darknessSaveTimer ??= CreateDarknessSaveTimer();
+        _darknessSaveTimer.Stop();
+        _darknessSaveTimer.Start();
+    }
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateDarknessSaveTimer()
+    {
+        var timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(300);
+        timer.IsRepeating = false;
+        timer.Tick += (_, _) => SavePendingImageDarkness();
+        return timer;
+    }
+
+    private void SavePendingImageDarkness()
+    {
+        _darknessSaveTimer?.Stop();
+        SourceCustomizationCard? card = _pendingDarknessCard;
+        _pendingDarknessCard = null;
+        if (card != null)
+        {
+            SourceImageService.Instance.SetImageDarkness(card.Provider, card.SourceId, (int)Math.Round(card.ImageDarkness));
+        }
+    }
+
+    public sealed class SourceCustomizationCard : System.ComponentModel.INotifyPropertyChanged
+    {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        private double _imageDarkness = SourceImageService.DefaultImageDarkness;
+
+        // 0–90; drives the preview overlay here and the image opacity in the calendar views.
+        public double ImageDarkness
+        {
+            get => _imageDarkness;
+            set
+            {
+                if (Math.Abs(_imageDarkness - value) < 0.01)
+                {
+                    return;
+                }
+
+                _imageDarkness = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(ImageDarkness)));
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(DarknessOverlayOpacity)));
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(ImageDarknessText)));
+            }
+        }
+
+        public double DarknessOverlayOpacity => _imageDarkness / 100.0;
+        public string ImageDarknessText => $"{Math.Round(_imageDarkness)}%";
+
         public string Provider { get; set; } = string.Empty;
         public string SourceId { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;

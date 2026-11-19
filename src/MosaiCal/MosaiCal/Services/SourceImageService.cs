@@ -15,11 +15,14 @@ public sealed class SourceImageAssociation
     public string SourceId { get; set; } = string.Empty;
     public string ManagedImageFileName { get; set; } = string.Empty;
     public DateTimeOffset UpdatedUtc { get; set; } = DateTimeOffset.UtcNow;
+    public int ImageDarkness { get; set; } = SourceImageService.DefaultImageDarkness;
 }
 
 internal sealed class SourceImageService
 {
     private const string AssociationFileName = "SourceImageAssociations.json";
+    public const int DefaultImageDarkness = 35;
+    public const int MaxImageDarkness = 90;
     private static readonly object SyncLock = new();
 
     public static SourceImageService Instance { get; } = new();
@@ -134,6 +137,46 @@ internal sealed class SourceImageService
         return fullPath;
     }
 
+    public int GetImageDarkness(CalendarSourceIdentity source)
+    {
+        return source.IsEmpty ? DefaultImageDarkness : GetImageDarkness(source.Provider, source.SourceId);
+    }
+
+    public int GetImageDarkness(string provider, string sourceId)
+    {
+        lock (SyncLock)
+        {
+            return _associations.TryGetValue(BuildKey(provider, sourceId), out SourceImageAssociation? association)
+                ? Math.Clamp(association.ImageDarkness, 0, MaxImageDarkness)
+                : DefaultImageDarkness;
+        }
+    }
+
+    public bool SetImageDarkness(string provider, string sourceId, int darkness)
+    {
+        darkness = Math.Clamp(darkness, 0, MaxImageDarkness);
+        lock (SyncLock)
+        {
+            if (!_associations.TryGetValue(BuildKey(provider, sourceId), out SourceImageAssociation? association))
+            {
+                return false;
+            }
+
+            if (association.ImageDarkness == darkness)
+            {
+                return true;
+            }
+
+            association.ImageDarkness = darkness;
+            association.UpdatedUtc = DateTimeOffset.UtcNow;
+            SaveAssociations();
+        }
+
+        LoggerService.Log($"SourceImageService: Set image darkness for '{provider}:{sourceId}' to {darkness}%.");
+        SourceImagesChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
     public bool HasSourceImage(CalendarSourceIdentity source) => !string.IsNullOrWhiteSpace(GetSourceImagePath(source));
 
     public bool HasSourceImage(string provider, string sourceId) => !string.IsNullOrWhiteSpace(GetSourceImagePath(provider, sourceId));
@@ -190,9 +233,13 @@ internal sealed class SourceImageService
             lock (SyncLock)
             {
                 string? previousFileName = null;
+                int darkness = DefaultImageDarkness;
 
                 if (_associations.TryGetValue(key, out var existing))
+                {
                     previousFileName = existing.ManagedImageFileName;
+                    darkness = existing.ImageDarkness; // keep the user's setting when swapping images
+                }
 
                 if (!File.Exists(destinationPath))
                     File.Copy(selectedImagePath, destinationPath);
@@ -202,7 +249,8 @@ internal sealed class SourceImageService
                     Provider = provider.Trim(),
                     SourceId = sourceId.Trim(),
                     ManagedImageFileName = safeFileName,
-                    UpdatedUtc = DateTimeOffset.UtcNow
+                    UpdatedUtc = DateTimeOffset.UtcNow,
+                    ImageDarkness = darkness
                 };
 
                 if (!string.IsNullOrWhiteSpace(previousFileName) &&

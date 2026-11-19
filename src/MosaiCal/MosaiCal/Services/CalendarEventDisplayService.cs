@@ -19,6 +19,7 @@ internal static class CalendarEventDisplayService
                 pair.Value.Source.Equals(identity.SourceId, StringComparison.OrdinalIgnoreCase))
             .Value?.BkgColor ?? "#3A3A3A";
         string? imagePath = SourceImageService.Instance.GetSourceImagePath(identity);
+        int imageDarkness = SourceImageService.Instance.GetImageDarkness(identity);
         LoggerService.Log(
             $"CalendarEventDisplayService: Event '{calendarEvent.Title}' provider='{calendarEvent.Provider}' source='{calendarEvent.Source}' identity='{identity.Key}' imageMatched={!string.IsNullOrWhiteSpace(imagePath)} image='{imagePath ?? "<none>"}' color='{backgroundColor}'.");
 
@@ -26,8 +27,13 @@ internal static class CalendarEventDisplayService
         {
             Time = time,
             Title = calendarEvent.Title,
-            BackgroundBrush = CreateBackgroundBrush(imagePath, backgroundColor)
+            BackgroundBrush = CreateBackgroundBrush(imagePath, backgroundColor, imageDarkness)
         };
+    }
+
+    public static double ImageOpacityForDarkness(int darkness)
+    {
+        return 1.0 - Math.Clamp(darkness, 0, SourceImageService.MaxImageDarkness) / 100.0;
     }
 
     private static CalendarSourceIdentity GetSourceIdentity(CalEventDto calendarEvent)
@@ -50,7 +56,7 @@ internal static class CalendarEventDisplayService
         return CalendarSourceIdentity.FromValues(provider, calendarEvent.Source);
     }
 
-    private static Brush CreateBackgroundBrush(string? imagePath, string backgroundColor)
+    private static Brush CreateBackgroundBrush(string? imagePath, string backgroundColor, int imageDarkness)
     {
         if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath))
         {
@@ -58,7 +64,7 @@ internal static class CalendarEventDisplayService
             {
                 ImageSource = new BitmapImage(new Uri(imagePath, UriKind.Absolute)),
                 Stretch = Stretch.UniformToFill,
-                Opacity = 0.65
+                Opacity = ImageOpacityForDarkness(imageDarkness)
             };
         }
 
