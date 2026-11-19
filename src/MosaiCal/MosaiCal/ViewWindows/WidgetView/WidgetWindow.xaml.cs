@@ -369,6 +369,7 @@ public sealed partial class WidgetWindow : Window
             HasImage = !string.IsNullOrWhiteSpace(imagePath),
             BackgroundColor = backgroundColor,
             ImageDarkness = SourceImageService.Instance.GetImageDarkness(identity),
+            IsVisible = SourceVisibilityService.IsVisible(identity),
         };
 
         card.BackgroundBrush = CreateBackgroundBrush(card);
@@ -517,6 +518,27 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
+    private void SourceVisibilityToggled(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleSwitch { DataContext: SourceCustomizationCard card } toggle ||
+            card.IsVisible == toggle.IsOn)
+        {
+            return;
+        }
+
+        card.IsVisible = toggle.IsOn;
+        try
+        {
+            SourceVisibilityService.SetVisible(
+                CalendarSourceIdentity.FromValues(card.Provider, card.SourceId),
+                toggle.IsOn);
+        }
+        catch (Exception exception)
+        {
+            LoggerService.LogException("WidgetWindow: Failed to change event group visibility.", exception);
+        }
+    }
+
     private void ImageDarknessChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
         if (sender is not Slider { DataContext: SourceCustomizationCard card } ||
@@ -583,6 +605,26 @@ public sealed partial class WidgetWindow : Window
 
         public double DarknessOverlayOpacity => _imageDarkness / 100.0;
         public string ImageDarknessText => $"{Math.Round(_imageDarkness)}%";
+
+        private bool _isVisible = true;
+
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set
+            {
+                if (_isVisible == value)
+                {
+                    return;
+                }
+
+                _isVisible = value;
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsVisible)));
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(ContentOpacity)));
+            }
+        }
+
+        public double ContentOpacity => _isVisible ? 1.0 : 0.5;
 
         public string Provider { get; set; } = string.Empty;
         public string SourceId { get; set; } = string.Empty;

@@ -36,6 +36,11 @@ internal static class CalendarEventDisplayService
         return 1.0 - Math.Clamp(darkness, 0, SourceImageService.MaxImageDarkness) / 100.0;
     }
 
+    public static bool IsSourceVisible(CalEventDto calendarEvent)
+    {
+        return SourceVisibilityService.IsVisible(GetSourceIdentity(calendarEvent));
+    }
+
     private static CalendarSourceIdentity GetSourceIdentity(CalEventDto calendarEvent)
     {
         if (string.Equals(calendarEvent.Provider, GoogleCalService.ProviderName, StringComparison.OrdinalIgnoreCase) &&

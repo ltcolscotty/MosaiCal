@@ -74,7 +74,7 @@ public sealed partial class TodoViewWindow : Window
         DateTimeOffset end = now.AddHours(24);
         var storedEvents = await EventAggService.ReadUpcomingEventsMessagePackAsync(dataPath);
 
-        foreach (CalEventDto calendarEvent in storedEvents.Values
+        foreach (CalEventDto calendarEvent in storedEvents.Values.Where(CalendarEventDisplayService.IsSourceVisible)
             .Where(calendarEvent => calendarEvent.Datetime >= now && calendarEvent.Datetime <= end)
             .OrderBy(calendarEvent => calendarEvent.Datetime))
         {
