@@ -85,6 +85,7 @@ public sealed partial class WidgetWindow : Window
         };
 
         CanvasCalLinkInput.Text = SettingsRetriever.GetCanvasICSLink();
+        UpdateCanvasConnectButtonText();
         _isUpdatingSourceControls = true;
         EnableGoogle.IsChecked = SettingsRetriever.GetGoogleEnabled();
         EnableCanvas.IsChecked = SettingsRetriever.GetCanvasEnabled();
@@ -103,8 +104,7 @@ public sealed partial class WidgetWindow : Window
         };
         _isUpdatingPrimaryViewControl = false;
         int transparencyPercentage = SettingsRetriever.GetWindowTransparency();
-        WindowTransparencySlider.Value = transparencyPercentage;
-        WindowTransparencyInput.Text = transparencyPercentage.ToString();
+        WindowTransparencyInput.Value = transparencyPercentage;
         _isUpdatingTransparencyControls = false;
         ViewWindowManager.PrimaryViewClosedByUser += OnPrimaryViewClosedByUser;
         ApplyBackgroundType();
@@ -520,6 +520,7 @@ public sealed partial class WidgetWindow : Window
         public string DisplayName { get; set; } = string.Empty;
         public string ImagePath { get; set; } = string.Empty;
         public bool HasImage { get; set; }
+        public Visibility RemoveImageVisibility => HasImage ? Visibility.Visible : Visibility.Collapsed;
         public string BackgroundColor { get; set; } = "#3A3A3A";
         public string StatusText { get; set; } = "No image configured";
         public Brush BackgroundBrush { get; set; } = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 58, 58, 58));
@@ -531,44 +532,23 @@ public sealed partial class WidgetWindow : Window
         ApplyBackgroundType();
     }
 
-    private void WindowTransparencySliderChanged(object sender, RangeBaseValueChangedEventArgs e)
+    private void WindowTransparencyInputChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (_isUpdatingTransparencyControls)
         {
             return;
         }
 
-        int transparencyPercentage = (int)Math.Round(e.NewValue);
-        _isUpdatingTransparencyControls = true;
-        WindowTransparencyInput.Text = transparencyPercentage.ToString();
-        _isUpdatingTransparencyControls = false;
+        if (double.IsNaN(args.NewValue))
+        {
+            _isUpdatingTransparencyControls = true;
+            sender.Value = SettingsRetriever.GetWindowTransparency();
+            _isUpdatingTransparencyControls = false;
+            return;
+        }
+
+        int transparencyPercentage = (int)Math.Clamp(Math.Round(args.NewValue), 0, 100);
         SettingsRetriever.SetWindowTransparency(transparencyPercentage);
-    }
-
-    private void WindowTransparencyInputChanged(object sender, TextChangedEventArgs e)
-    {
-        if (_isUpdatingTransparencyControls ||
-            !int.TryParse(WindowTransparencyInput.Text, out int transparencyPercentage) ||
-            transparencyPercentage is < 0 or > 100)
-        {
-            return;
-        }
-
-        WindowTransparencySlider.Value = transparencyPercentage;
-    }
-
-    private void WindowTransparencyInputLostFocus(object sender, RoutedEventArgs e)
-    {
-        if (_isUpdatingTransparencyControls)
-        {
-            return;
-        }
-
-        int transparencyPercentage = SettingsRetriever.GetWindowTransparency();
-        _isUpdatingTransparencyControls = true;
-        WindowTransparencyInput.Text = transparencyPercentage.ToString();
-        WindowTransparencySlider.Value = transparencyPercentage;
-        _isUpdatingTransparencyControls = false;
     }
 
     private async void GoogleSIClick(object sender, RoutedEventArgs e)
@@ -601,6 +581,7 @@ public sealed partial class WidgetWindow : Window
     {
         GoogleSI.IsEnabled = false;
         GoogleConnectionStatus.Text = "Waiting for Google sign-in...";
+        GoogleConnectionStatus.Visibility = Visibility.Visible;
         try
         {
             bool connected = await EventAggService.GetGoogleCalService().AuthorizeAsync();
@@ -648,8 +629,16 @@ public sealed partial class WidgetWindow : Window
         }
 
         CanvasLinkStatus.Text = "Canvas calendar link saved.";
+        UpdateCanvasConnectButtonText();
         await EventAggService.ReloadSourcesAsync();
         await UpdateViewSourceAvailabilityAsync();
+    }
+
+    private void UpdateCanvasConnectButtonText()
+    {
+        CanvasConnectButtonText.Text = IsCanvasCalendarConfigured(SettingsRetriever.GetCanvasICSLink())
+            ? "Update"
+            : "Connect Calendar";
     }
 
     private async void RefreshCanvasSources(object sender, RoutedEventArgs e)
@@ -731,7 +720,8 @@ public sealed partial class WidgetWindow : Window
     private async Task UpdateConnectionStatusAsync(bool? connectedOverride = null)
     {
         bool connected = connectedOverride ?? await EventAggService.GetGoogleCalService().IsAccountActiveAsync();
-        GoogleConnectionStatus.Text = connected ? "Connected to Google Calendar." : "Not connected";
+        GoogleConnectionStatus.Text = "Not connected";
+        GoogleConnectionStatus.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleSignedOutPanel.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleAccountCard.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
         RefreshGoogleSourcesButton.Visibility = connected
