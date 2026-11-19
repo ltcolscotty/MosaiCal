@@ -9,15 +9,15 @@ Target: Winter 2027
 - [x] Prevent processes from interrupting shutdown
 - [ ] Disable specific sources
 - [x] Default fallback case for unsupported universities in parsing handler
-- [ ] Bracket edge case in assignment name parsing
-  - [ ] Tighten up regexes
+- [x] Bracket edge case in assignment name parsing
+  - [x] Tighten up regexes
 
 #### Customization
 
 - [ ] Solid color customization option for event backgrounds
 - [ ] Color selector UI
 - [ ] Good looking default config
-- [ ] Darkness adjuster for images per source
+- [x] Darkness adjuster for images per source
 
 #### Reliability
 
@@ -85,9 +85,9 @@ Target: Winter 2027
 
 ### Done
 
-- [x] Prevent processes from interrupting shutdown
-- [x] Automatic Refreshing
-- [x] On startup request
+- [x] Darkness adjuster for images per source
+- [x] Bracket edge case in assignment name parsing
+- [x] Tighten up regexes
 
 ### Conventions
 

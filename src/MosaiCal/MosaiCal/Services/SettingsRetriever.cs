@@ -259,7 +259,13 @@ internal static class SettingsRetriever
         }));
     }
 
-    public static string GetSchoolName() { return options.School; }
+    public static string GetSchoolName() { return options.School ?? string.Empty; }
+
+    public static void SetSchoolName(string school)
+    {
+        options.School = school?.Trim() ?? string.Empty;
+        SaveOptions();
+    }
     public static string GetMainDataPath() { return dataFile; }
     public static bool GetInitializedStatus() { return initializedAsyncStatus; }
     public static int GetTrackedDays() { return options.TrackedDays; }

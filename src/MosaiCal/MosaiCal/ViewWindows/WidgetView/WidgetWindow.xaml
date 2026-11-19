@@ -382,7 +382,26 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" ColumnSpacing="12" RowSpacing="4">
+                    <StackPanel Grid.Row="0" Spacing="16">
+                    <StackPanel Spacing="4">
+                        <AutoSuggestBox x:Name="CanvasSchoolSelector"
+                                        Header="School"
+                                        PlaceholderText="Search for your school"
+                                        QueryIcon="Find"
+                                        MaxWidth="480"
+                                        HorizontalAlignment="Left"
+                                        MinWidth="320"
+                                        UpdateTextOnSelect="False"
+                                        GotFocus="CanvasSchoolSelectorGotFocus"
+                                        LostFocus="CanvasSchoolSelectorLostFocus"
+                                        TextChanged="CanvasSchoolSelectorTextChanged"
+                                        QuerySubmitted="CanvasSchoolSelectorQuerySubmitted" />
+                        <TextBlock x:Name="CanvasSchoolHint"
+                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Grid ColumnSpacing="12" RowSpacing="4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -412,6 +431,7 @@
                                    Grid.ColumnSpan="2"
                                    TextWrapping="Wrap" />
                     </Grid>
+                    </StackPanel>
                     <Grid x:Name="CanvasSyncRow"
                           Grid.Row="1"
                           ColumnSpacing="12"

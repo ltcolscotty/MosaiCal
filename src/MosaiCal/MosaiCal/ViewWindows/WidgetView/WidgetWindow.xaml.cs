@@ -88,6 +88,7 @@ public sealed partial class WidgetWindow : Window
 
         CanvasCalLinkInput.Text = SettingsRetriever.GetCanvasICSLink();
         UpdateCanvasConnectButtonText();
+        ShowSavedSchool();
         _isUpdatingSourceControls = true;
         EnableGoogle.IsOn = SettingsRetriever.GetGoogleEnabled();
         EnableCanvas.IsOn = SettingsRetriever.GetCanvasEnabled();
@@ -702,6 +703,122 @@ public sealed partial class WidgetWindow : Window
         UpdateCanvasConnectButtonText();
         await EventAggService.ReloadSourcesAsync();
         await UpdateViewSourceAvailabilityAsync();
+    }
+
+    // ---- School selector -------------------------------------------------------------
+
+    private static readonly IReadOnlyList<string> SupportedSchools = UniRegexService.GetSupportedSchools();
+
+    private static List<string> FilterSchools(string query)
+    {
+        string trimmed = query?.Trim() ?? string.Empty;
+        return trimmed.Length == 0
+            ? SupportedSchools.ToList()
+            : SupportedSchools.Where(name => name.Contains(trimmed, StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private static string? FindSchool(string text)
+    {
+        return SupportedSchools.FirstOrDefault(name => string.Equals(name, text?.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void ShowSavedSchool()
+    {
+        string school = SettingsRetriever.GetSchoolName();
+        CanvasSchoolSelector.Text = school;
+        CanvasSchoolHint.Text = school.Length == 0
+            ? "No school selected. Course names are shown as they appear in Canvas."
+            : $"Course names are read using {school}'s naming format.";
+    }
+
+    private void CanvasSchoolSelectorGotFocus(object sender, RoutedEventArgs e)
+    {
+        bool showingSaved = string.Equals(CanvasSchoolSelector.Text, SettingsRetriever.GetSchoolName(), StringComparison.Ordinal);
+        CanvasSchoolSelector.ItemsSource = FilterSchools(showingSaved ? string.Empty : CanvasSchoolSelector.Text);
+        CanvasSchoolSelector.IsSuggestionListOpen = true;
+    }
+
+    private void CanvasSchoolSelectorTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+    {
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+        {
+            sender.ItemsSource = FilterSchools(sender.Text);
+            sender.IsSuggestionListOpen = true;
+        }
+    }
+
+    private async void CanvasSchoolSelectorQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        string? school = args.ChosenSuggestion as string;
+        if (school == null)
+        {
+            List<string> matches = FilterSchools(args.QueryText);
+            school = string.IsNullOrWhiteSpace(args.QueryText)
+                ? string.Empty
+                : FindSchool(args.QueryText) ?? (matches.Count == 1 ? matches[0] : null);
+        }
+
+        if (school == null)
+        {
+            return;
+        }
+
+        sender.IsSuggestionListOpen = false;
+        await ApplySchoolAsync(school);
+    }
+
+    private void CanvasSchoolSelectorLostFocus(object sender, RoutedEventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () =>
+        {
+            if (CanvasSchoolSelector.FocusState != FocusState.Unfocused)
+            {
+                return;
+            }
+
+            string text = CanvasSchoolSelector.Text;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                await ApplySchoolAsync(string.Empty);
+            }
+            else if (FindSchool(text) is string exact)
+            {
+                await ApplySchoolAsync(exact);
+            }
+            else
+            {
+                ShowSavedSchool();
+            }
+        });
+    }
+
+    private async Task ApplySchoolAsync(string school)
+    {
+        bool changed = !string.Equals(school, SettingsRetriever.GetSchoolName(), StringComparison.Ordinal);
+        if (changed)
+        {
+            SettingsRetriever.SetSchoolName(school);
+            LoggerService.Log($"WidgetWindow: School set to '{(school.Length == 0 ? "<none>" : school)}'.");
+        }
+
+        ShowSavedSchool();
+
+        if (changed && IsCanvasCalendarConfigured(SettingsRetriever.GetCanvasICSLink()))
+        {
+            CanvasSyncStatus.Text = "Updating course names…";
+            try
+            {
+                bool? refreshed = await EventAggService.RefreshCanvas();
+                CanvasSyncStatus.Text = refreshed == true
+                    ? "Course names updated for the selected school."
+                    : "Canvas events could not be refreshed.";
+            }
+            catch (Exception exception)
+            {
+                LoggerService.LogException("WidgetWindow.ApplySchoolAsync", exception);
+                CanvasSyncStatus.Text = "Canvas refresh failed. See Logs.txt for details.";
+            }
+        }
     }
 
     private void UpdateCanvasConnectButtonText()

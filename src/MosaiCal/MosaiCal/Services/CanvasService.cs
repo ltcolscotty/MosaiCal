@@ -53,6 +53,13 @@ internal class CanvasService
         Dictionary<string, EventTypeConfig> sourceList,
         CancellationToken cancellationToken = default)
     {
+        string school = SettingsRetriever.GetSchoolName() ?? string.Empty;
+        if (!string.Equals(uniRegexService.University, school, StringComparison.Ordinal))
+        {
+            LoggerService.Log($"CanvasService: School changed to '{(school.Length == 0 ? "<none>" : school)}'; switching course-name parser.");
+            uniRegexService = new UniRegexService(school);
+        }
+
         // May need to check that folder exists
         string calendarFile = Path.Combine(AppDataPaths.LocalFolderPath, "CanvasData.ics");
         List<IDHelper.EventID> sourceKeys = new();
