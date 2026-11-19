@@ -23,6 +23,7 @@ internal static class SettingsRetriever
     private static Timer? sourceConfigReloadTimer;
     private static List<string> activeSources = [];
     private static readonly string settingsFile;
+    private static readonly object optionsLock = new();
 
     public static event Action<int>? WindowTransparencyChanged;
 
@@ -46,16 +47,20 @@ internal static class SettingsRetriever
         sourceConfigWatcher.EnableRaisingEvents = true;
         LoggerService.Log($"SettingsRetriever: Watching source customization file '{ETCSettingsFile}'.");
 
-        if (!File.Exists(settingsFile))
+        using (FileStream settingsLock = AcquireSettingsFileLock())
         {
-            options = new ConfigOptions();
-            File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
-        }
-        else
-        {
-            string jsonStr = File.ReadAllText(settingsFile);
-            options = JsonSerializer.Deserialize<ConfigOptions>(jsonStr) ?? new ConfigOptions();
-            options.Normalize();
+            if (TryReadOptionsFromDisk(out ConfigOptions? diskOptions))
+            {
+                options = diskOptions;
+            }
+            else
+            {
+                options = new ConfigOptions();
+                if (!File.Exists(settingsFile))
+                {
+                    WriteOptionsToDisk(options);
+                }
+            }
         }
     }
 
@@ -67,8 +72,7 @@ internal static class SettingsRetriever
 
     public static void SetWindowTransparency(int transparencyPercentage)
     {
-        options.BackgroundTransparency = Math.Clamp(transparencyPercentage, 0, 100);
-        SaveOptions();
+        UpdateOptions(o => o.BackgroundTransparency = Math.Clamp(transparencyPercentage, 0, 100));
         WindowTransparencyChanged?.Invoke(options.BackgroundTransparency);
     }
 
@@ -141,48 +145,41 @@ internal static class SettingsRetriever
             LoggerService.Log($"Invalid url {newLink}", LoggerStatusEnum.WARNING);
             return false;
         }
-        options.CanvasICSLink = newLink;
-        SaveOptions();
+        UpdateOptions(o => o.CanvasICSLink = newLink);
         return true;
     }
 
     public static DateTimeOffset getLastUpdateTime() { return options.lastUpdateTime; }
     public static void setLastUpdateTime(DateTimeOffset newTime)
     {
-        options.lastUpdateTime = newTime;
-        SaveOptions();
+        UpdateOptions(o => o.lastUpdateTime = newTime);
     }
 
     public static string GetCanvasICSLink() { return options.CanvasICSLink; }
     public static bool GetCanvasEnabled() { return options.CanvasEnabled; }
     public static void SetCanvasEnabled(bool enabled)
     {
-        options.CanvasEnabled = enabled;
-        SaveOptions();
+        UpdateOptions(o => o.CanvasEnabled = enabled);
     }
     public static bool GetPinnedViewEnabled() { return options.PinnedViewEnabled; }
     public static void SetPinnedViewEnabled(bool enabled)
     {
-        options.PinnedViewEnabled = enabled;
-        SaveOptions();
+        UpdateOptions(o => o.PinnedViewEnabled = enabled);
     }
     public static bool GetPrimaryViewEnabled() { return options.PrimaryViewEnabled; }
     public static void SetPrimaryViewEnabled(bool enabled)
     {
-        options.PrimaryViewEnabled = enabled;
-        SaveOptions();
+        UpdateOptions(o => o.PrimaryViewEnabled = enabled);
     }
     public static bool? GetStartupAtLoginConsent() { return options.StartupAtLoginConsent; }
     public static void SetStartupAtLoginConsent(bool consent)
     {
-        options.StartupAtLoginConsent = consent;
-        SaveOptions();
+        UpdateOptions(o => o.StartupAtLoginConsent = consent);
     }
     public static PrimaryViewEnum GetPrimaryView() { return options.PrimaryView; }
     public static void SetPrimaryView(PrimaryViewEnum primaryView)
     {
-        options.PrimaryView = primaryView;
-        SaveOptions();
+        UpdateOptions(o => o.PrimaryView = primaryView);
     }
     public static WindowPosition? GetWindowPosition(bool pinned)
     {
@@ -191,16 +188,17 @@ internal static class SettingsRetriever
     public static void SetWindowPosition(bool pinned, int x, int y)
     {
         WindowPosition position = new() { X = x, Y = y };
-        if (pinned)
+        UpdateOptions(o =>
         {
-            options.PinnedViewPosition = position;
-        }
-        else
-        {
-            options.PrimaryViewPosition = position;
-        }
-
-        SaveOptions();
+            if (pinned)
+            {
+                o.PinnedViewPosition = position;
+            }
+            else
+            {
+                o.PrimaryViewPosition = position;
+            }
+        });
     }
     public static WindowSize? GetWindowSize(bool pinned)
     {
@@ -209,28 +207,27 @@ internal static class SettingsRetriever
     public static void SetWindowSize(bool pinned, int width, int height)
     {
         WindowSize size = new() { Width = width, Height = height };
-        if (pinned)
+        UpdateOptions(o =>
         {
-            options.PinnedViewSize = size;
-        }
-        else
-        {
-            options.PrimaryViewSize = size;
-        }
-
-        SaveOptions();
+            if (pinned)
+            {
+                o.PinnedViewSize = size;
+            }
+            else
+            {
+                o.PrimaryViewSize = size;
+            }
+        });
     }
     public static void SetGoogleEnabled(bool enabled)
     {
-        options.GoogleEnabled = enabled;
-        SaveOptions();
+        UpdateOptions(o => o.GoogleEnabled = enabled);
     }
     public static bool GetGoogleEnabled() { return options.GoogleEnabled; }
 
     public static void SetBackgroundType(BackgroundTypeEnum backgroundType)
     {
-        options.BackgroundType = backgroundType;
-        SaveOptions();
+        UpdateOptions(o => o.BackgroundType = backgroundType);
     }
     public static GoogleCalOptions GetGoogleCalOptions()
     {
@@ -246,25 +243,102 @@ internal static class SettingsRetriever
 
     public static void SetGoogleCredentials(string clientId, string clientSecret)
     {
-        options.GoogleClientId = clientId.Trim();
-        options.GoogleClientSecret = clientSecret.Trim();
-        SaveOptions();
+        UpdateOptions(o =>
+        {
+            o.GoogleClientId = clientId.Trim();
+            o.GoogleClientSecret = clientSecret.Trim();
+        });
     }
 
-    public static void SaveOptions()
+    public static void ReloadOptionsFromDisk()
     {
-        File.WriteAllText(settingsFile, JsonSerializer.Serialize(options, new JsonSerializerOptions
+        lock (optionsLock)
         {
-            WriteIndented = true
-        }));
+            using FileStream settingsLock = AcquireSettingsFileLock();
+            if (TryReadOptionsFromDisk(out ConfigOptions? diskOptions))
+            {
+                options = diskOptions;
+            }
+        }
+    }
+
+    private static void UpdateOptions(Action<ConfigOptions> applyChange)
+    {
+        lock (optionsLock)
+        {
+            using FileStream settingsLock = AcquireSettingsFileLock();
+            if (TryReadOptionsFromDisk(out ConfigOptions? diskOptions))
+            {
+                options = diskOptions;
+            }
+
+            applyChange(options);
+            WriteOptionsToDisk(options);
+        }
+    }
+
+    private static bool TryReadOptionsFromDisk([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ConfigOptions? diskOptions)
+    {
+        diskOptions = null;
+        if (!File.Exists(settingsFile))
+        {
+            return false;
+        }
+
+        try
+        {
+            diskOptions = JsonSerializer.Deserialize<ConfigOptions>(File.ReadAllText(settingsFile));
+            diskOptions?.Normalize();
+            return diskOptions != null;
+        }
+        catch (Exception exception) when (exception is IOException or JsonException)
+        {
+            LoggerService.LogException("SettingsRetriever: Failed to read settings from disk; keeping in-memory settings.", exception);
+            return false;
+        }
+    }
+
+    private static void WriteOptionsToDisk(ConfigOptions value)
+    {
+        string temporaryPath = $"{settingsFile}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            File.WriteAllText(temporaryPath, JsonSerializer.Serialize(value, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            }));
+            File.Move(temporaryPath, settingsFile, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    private static FileStream AcquireSettingsFileLock()
+    {
+        string lockPath = settingsFile + ".lock";
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException exception) when ((exception.HResult & 0xFFFF) is 32 or 33 && attempt < 200)
+            {
+                Thread.Sleep(25);
+            }
+        }
     }
 
     public static string GetSchoolName() { return options.School ?? string.Empty; }
 
     public static void SetSchoolName(string school)
     {
-        options.School = school?.Trim() ?? string.Empty;
-        SaveOptions();
+        UpdateOptions(o => o.School = school?.Trim() ?? string.Empty);
     }
     public static string GetMainDataPath() { return dataFile; }
     public static bool GetInitializedStatus() { return initializedAsyncStatus; }

@@ -1032,6 +1032,8 @@ public sealed partial class WidgetWindow : Window
         {
             await EventAggService.ReloadSourcesAsync();
         }
+
+        await ApplySourceToggleToEventsAsync("google", enabled);
     }
 
     private async Task SetCanvasEnabledAsync(bool enabled)
@@ -1041,6 +1043,35 @@ public sealed partial class WidgetWindow : Window
             $"WidgetWindow: Canvas source toggled {(enabled ? "enabled" : "disabled")}.",
             LoggerStatusEnum.INFO);
         await EventAggService.ReloadSourcesAsync();
+        await ApplySourceToggleToEventsAsync("canvas", enabled);
+    }
+
+    private static async Task ApplySourceToggleToEventsAsync(string source, bool enabled)
+    {
+        try
+        {
+            if (!enabled)
+            {
+                await EventAggService.RemoveSourceEventsAsync(source);
+                return;
+            }
+
+            bool? refreshed = source == "google"
+                ? await EventAggService.RefreshGoogle()
+                : await EventAggService.RefreshCanvas();
+            if (refreshed != true)
+            {
+                LoggerService.Log(
+                    $"WidgetWindow: Refresh after enabling '{source}' did not complete (result: {refreshed?.ToString() ?? "null"}).",
+                    LoggerStatusEnum.WARNING);
+            }
+        }
+        catch (Exception exception)
+        {
+            LoggerService.LogException(
+                $"WidgetWindow: Failed to apply '{source}' toggle to stored events.",
+                exception);
+        }
     }
 
     private void PrimaryViewChanged(object sender, SelectionChangedEventArgs e)

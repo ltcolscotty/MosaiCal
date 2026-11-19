@@ -109,7 +109,7 @@ internal static class EventAggService
                 continue;
             }
 
-            sourceIDs[source] = new();
+            sourceIDs.TryAdd(source, new());
         }
     }
 
@@ -317,6 +317,54 @@ internal static class EventAggService
         return true;
     }
 
+    public static async Task RemoveSourceEventsAsync(string source)
+    {
+        Func<CalEventDto, bool> belongsToSource = source switch
+        {
+            "google" => IsGoogleEvent,
+            "canvas" => IsCanvasEvent,
+            _ => throw new ArgumentException($"Unknown event source '{source}'.", nameof(source))
+        };
+
+        CancellationToken cancellationToken = shutdownCancellation.Token;
+        await using FileStream calendarDataLock = await AcquireCalendarDataLockAsync(cancellationToken);
+        string dataPath = SettingsRetriever.GetMainDataPath();
+        Dictionary<IDHelper.EventID, CalEventDto> calendarData = await ReadCalendarDataWithoutLockAsync(
+            dataPath,
+            cancellationToken);
+
+        List<IDHelper.EventID> removedIds = calendarData
+            .Where(pair => belongsToSource(pair.Value))
+            .Select(pair => pair.Key)
+            .ToList();
+        if (removedIds.Count > 0)
+        {
+            foreach (IDHelper.EventID id in removedIds)
+            {
+                calendarData.Remove(id);
+            }
+
+            await SaveCalDataAsync(calendarData, dataPath, cancellationToken);
+        }
+
+        sourceIDs[source] = new();
+        LoggerService.Log(
+            $"EventAggService: Removed {removedIds.Count} stored '{source}' events after the source was disabled.",
+            LoggerStatusEnum.INFO);
+        QueueEventsChanged();
+    }
+
+    private static bool IsCanvasEvent(CalEventDto calendarEvent)
+    {
+        if (calendarEvent.Provider == "Canvas")
+        {
+            return true;
+        }
+
+        return string.IsNullOrWhiteSpace(calendarEvent.Provider) &&
+            !string.IsNullOrWhiteSpace(calendarEvent.LongSource);
+    }
+
     private static bool IsGoogleEvent(CalEventDto calendarEvent)
     {
         if (calendarEvent.Provider == GoogleCalService.ProviderName)
@@ -349,6 +397,7 @@ internal static class EventAggService
             return;
         }
 
+        await SyncSettingsFromDiskAsync();
         await using FileStream calendarDataLock = await AcquireCalendarDataLockAsync(cancellationToken);
 
         if (sourceList == null)
@@ -414,6 +463,7 @@ internal static class EventAggService
             return;
         }
 
+        await SyncSettingsFromDiskAsync();
         await using FileStream calendarDataLock = await AcquireCalendarDataLockAsync(cancellationToken);
 
         if (sourceList == null)
@@ -435,6 +485,12 @@ internal static class EventAggService
 
         SettingsRetriever.setLastUpdateTime(DateTimeOffset.Now);
         LoggerService.Log("EventAggService: All sources refreshed successfully", LoggerStatusEnum.INFO);
+    }
+
+    private static async Task SyncSettingsFromDiskAsync()
+    {
+        SettingsRetriever.ReloadOptionsFromDisk();
+        await LoadSourcesAsync();
     }
 
     private static bool CanRefreshEvents()
