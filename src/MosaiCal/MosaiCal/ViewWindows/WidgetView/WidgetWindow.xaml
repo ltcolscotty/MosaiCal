@@ -4,7 +4,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
-    xmlns:local="using:MosaiCal.ViewWindows.WidgetView"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -24,18 +23,35 @@
             </DataTemplate>
 
             <DataTemplate x:Key="SourceCardTemplate">
-                <Border Background="{Binding BackgroundBrush}" CornerRadius="12" Padding="12" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="{Binding DisplayName}" FontSize="18" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding StatusText}" Opacity="0.8" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button Content="Pick image" Click="ChooseBackgroundImageClick" />
-                            <Button Content="Remove image"
-                                    Click="RemoveBackgroundImageClick"
-                                    Visibility="{Binding RemoveImageVisibility}" />
-                        </StackPanel>
+                <!-- With an image, the card switches to the dark theme (light text/buttons)
+                     and a left-to-right gradient keeps the text readable over the picture. -->
+                <Border Background="{Binding BackgroundBrush}"
+                        RequestedTheme="{Binding CardTheme}"
+                        CornerRadius="12"
+                        BorderThickness="1"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                    <Grid>
+                        <Border CornerRadius="11" Visibility="{Binding ImageOverlayVisibility}">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                    <GradientStop Color="#CC000000" Offset="0" />
+                                    <GradientStop Color="#66000000" Offset="0.6" />
+                                    <GradientStop Color="#33000000" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Grid Padding="12" ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{Binding DisplayName}" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding StatusText}" Opacity="0.8" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Button Content="Pick image" Click="ChooseBackgroundImageClick" />
+                                <Button Content="Remove image"
+                                        Click="RemoveBackgroundImageClick"
+                                        Visibility="{Binding RemoveImageVisibility}" />
+                            </StackPanel>
+                        </Grid>
                     </Grid>
                 </Border>
             </DataTemplate>
@@ -105,7 +121,7 @@
                     <StackPanel Padding="16" Spacing="8" HorizontalAlignment="Stretch">
                         <muxc:Expander Header="Sources"
                                       HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
-                                      IsExpanded="False"
+                                      IsExpanded="True"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
                             <StackPanel Spacing="12" Padding="8,4,8,8">
@@ -173,7 +189,7 @@
                         </muxc:Expander>
                         <muxc:Expander Header="Views"
                                       HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
-                                      IsExpanded="False"
+                                      IsExpanded="True"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
                             <StackPanel Spacing="8" Padding="8,4,8,8">
@@ -218,43 +234,40 @@
                                            TextWrapping="Wrap" />
                             </StackPanel>
                         </muxc:Expander>
-                        <muxc:Expander Header="Window transparency"
+                        <muxc:Expander Header="Appearance"
                                       HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
-                                      IsExpanded="False"
+                                      IsExpanded="True"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
-                            <muxc:NumberBox x:Name="WindowTransparencyInput"
-                                            Header="Transparency (%)"
-                                            Margin="8,4,8,8"
-                                            Minimum="0"
-                                            Maximum="100"
-                                            SmallChange="5"
-                                            LargeChange="10"
-                                            SpinButtonPlacementMode="Inline"
-                                            ValidationMode="InvalidInputOverwritten"
-                                            HorizontalAlignment="Left"
-                                            MinWidth="160"
-                                            ValueChanged="WindowTransparencyInputChanged" />
-                        </muxc:Expander>
-                        <muxc:Expander Header="Background style"
-                                      HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
-                                      IsExpanded="False"
-                                      HorizontalAlignment="Stretch"
-                                      HorizontalContentAlignment="Stretch">
-                            <muxc:RadioButtons x:Name="BkgStyleRadioSettings"
-                                               SelectedIndex="0"
-                                               SelectionChanged="BkgStyleChanged"
-                                               Padding="8,4,8,8">
-                                <x:String>Solid</x:String>
-                                <x:String>Mica</x:String>
-                                <x:String>Acrylic</x:String>
-                            </muxc:RadioButtons>
+                            <StackPanel Spacing="16" Padding="8,4,8,8">
+                                <muxc:RadioButtons x:Name="BkgStyleRadioSettings"
+                                                   Header="Background style"
+                                                   SelectedIndex="0"
+                                                   SelectionChanged="BkgStyleChanged">
+                                    <x:String>Solid</x:String>
+                                    <x:String>Mica</x:String>
+                                    <x:String>Acrylic</x:String>
+                                </muxc:RadioButtons>
+                                <muxc:NumberBox x:Name="WindowTransparencyInput"
+                                                Header="Window transparency (%)"
+                                                Minimum="0"
+                                                Maximum="100"
+                                                SmallChange="5"
+                                                LargeChange="10"
+                                                SpinButtonPlacementMode="Inline"
+                                                ValidationMode="InvalidInputOverwritten"
+                                                HorizontalAlignment="Left"
+                                                MinWidth="160"
+                                                ValueChanged="WindowTransparencyInputChanged" />
+                            </StackPanel>
                         </muxc:Expander>
                     </StackPanel>
                 </ScrollViewer>
 
                 <Grid x:Name="GooglePage" Padding="16" Visibility="Collapsed">
+                    <!-- Same structure as CanvasPage: connection, sync row, calendar list -->
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
@@ -300,30 +313,14 @@
                                     <TextBlock x:Name="GoogleProfileNameText" FontWeight="SemiBold" />
                                     <TextBlock x:Name="GoogleProfileEmailText" Opacity="0.7" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <muxc:Button x:Name="RefreshGoogleSourcesButton"
-                                                     Content="Sync Google Sources"
-                                                     Click="RefreshGoogleSources"
-                                                     Visibility="Collapsed"/>
-                                        <TextBlock x:Name="GoogleSyncStatus"
-                                                   VerticalAlignment="Center"
-                                                   MaxWidth="300"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2"
-                                                Orientation="Horizontal"
-                                                HorizontalAlignment="Right"
-                                                Spacing="8">
-                                        <Button Content="Switch account" Click="GoogleSwitchAccountClick" />
-                                        <Button Content="Sign out" Click="GoogleSignOutClick" />
-                                    </StackPanel>
-                                </Grid>
+                                <StackPanel Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            Orientation="Horizontal"
+                                            HorizontalAlignment="Right"
+                                            Spacing="8">
+                                    <Button Content="Switch account" Click="GoogleSwitchAccountClick" />
+                                    <Button Content="Sign out" Click="GoogleSignOutClick" />
+                                </StackPanel>
                             </Grid>
                         </Border>
                         <TextBlock x:Name="GoogleConnectionStatus"
@@ -332,7 +329,24 @@
                                    Text="Not connected"
                                    TextWrapping="Wrap" />
                     </Grid>
-                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                    <Grid x:Name="GoogleSyncRow"
+                          Grid.Row="1"
+                          ColumnSpacing="12"
+                          Padding="0,10"
+                          Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <muxc:Button x:Name="RefreshGoogleSourcesButton"
+                                     Content="Sync now"
+                                     Click="RefreshGoogleSources" />
+                        <TextBlock x:Name="GoogleSyncStatus"
+                                   Grid.Column="1"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap" />
+                    </Grid>
+                    <Grid Grid.Row="2">
                         <ListView x:Name="GoogleSourceCardsList"
                                   SelectionMode="None"
                                   IsItemClickEnabled="False"
@@ -346,7 +360,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" ColumnSpacing="12" RowSpacing="4" Padding="0,10">
+                    <Grid Grid.Row="0" ColumnSpacing="12" RowSpacing="4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -376,12 +390,16 @@
                                    Grid.ColumnSpan="2"
                                    TextWrapping="Wrap" />
                     </Grid>
-                    <Grid Grid.Row="1" ColumnSpacing="12" Padding="0,0,0,10">
+                    <Grid x:Name="CanvasSyncRow"
+                          Grid.Row="1"
+                          ColumnSpacing="12"
+                          Padding="0,10"
+                          Visibility="Collapsed">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <muxc:Button Content="Sync Canvas Now" Click="RefreshCanvasSources" />
+                        <muxc:Button Content="Sync now" Click="RefreshCanvasSources" />
                         <TextBlock x:Name="CanvasSyncStatus"
                                    Grid.Column="1"
                                    VerticalAlignment="Center"

@@ -1,7 +1,6 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using MosaiCal.Models;
@@ -521,6 +520,8 @@ public sealed partial class WidgetWindow : Window
         public string ImagePath { get; set; } = string.Empty;
         public bool HasImage { get; set; }
         public Visibility RemoveImageVisibility => HasImage ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility ImageOverlayVisibility => HasImage ? Visibility.Visible : Visibility.Collapsed;
+        public ElementTheme CardTheme => HasImage ? ElementTheme.Dark : ElementTheme.Default;
         public string BackgroundColor { get; set; } = "#3A3A3A";
         public string StatusText { get; set; } = "No image configured";
         public Brush BackgroundBrush { get; set; } = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 58, 58, 58));
@@ -702,22 +703,6 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
-    private async void RefreshAll(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            await EventAggService.WriteUpcomingEventsMessagePackAsync(null);
-        }
-        catch (OperationCanceledException) when (EventAggService.IsShutdownRequested)
-        {
-            LoggerService.Log("WidgetWindow: Source refresh canceled because Windows is shutting down.");
-        }
-        catch (Exception exception)
-        {
-            LoggerService.LogException("WidgetWindow.RefreshAll", exception);
-        }
-    }
-    
     private async Task UpdateConnectionStatusAsync(bool? connectedOverride = null)
     {
         bool connected = connectedOverride ?? await EventAggService.GetGoogleCalService().IsAccountActiveAsync();
@@ -725,7 +710,7 @@ public sealed partial class WidgetWindow : Window
         GoogleConnectionStatus.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleSignedOutPanel.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         GoogleAccountCard.Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
-        RefreshGoogleSourcesButton.Visibility = connected
+        GoogleSyncRow.Visibility = connected
             ? Visibility.Visible
             : Visibility.Collapsed;
 
@@ -803,6 +788,7 @@ public sealed partial class WidgetWindow : Window
             ? $"Connected to {feedUri.Host}"
             : "Not set up";
         CanvasSetupLink.Visibility = configured ? Visibility.Collapsed : Visibility.Visible;
+        CanvasSyncRow.Visibility = configured ? Visibility.Visible : Visibility.Collapsed;
         EnableCanvas.IsEnabled = configured;
     }
 
