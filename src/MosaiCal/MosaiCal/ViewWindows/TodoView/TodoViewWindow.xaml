@@ -12,8 +12,8 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Margin="0,0,0,8" Padding="12" Background="{Binding BackgroundBrush}" CornerRadius="10">
-                                <Grid ColumnDefinitions="78,*">
-                                    <TextBlock Text="{Binding Time}" FontWeight="SemiBold" Foreground="#7BCBFF" />
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <TextBlock Text="{Binding Time}" MinWidth="104" FontWeight="SemiBold" Foreground="#7BCBFF" />
                                     <TextBlock Grid.Column="1" Text="{Binding Title}" Foreground="White" TextWrapping="Wrap" />
                                 </Grid>
                             </Border>
