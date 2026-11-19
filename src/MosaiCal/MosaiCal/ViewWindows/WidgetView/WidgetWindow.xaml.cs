@@ -27,6 +27,7 @@ public sealed partial class WidgetWindow : Window
 {
     public ObservableCollection<SourceCustomizationCard> GoogleSourceCards { get; } = new();
     public ObservableCollection<SourceCustomizationCard> CanvasSourceCards { get; } = new();
+    private int _customizationCardsRefreshGeneration;
 
     private readonly RefreshSchedService _refreshSchedService;
     private readonly IDisposable _shutdownHandler;
@@ -38,6 +39,8 @@ public sealed partial class WidgetWindow : Window
     public WidgetWindow()
     {
         InitializeComponent();
+        GoogleSourceCardsList.ItemsSource = GoogleSourceCards;
+        CanvasSourceCardsList.ItemsSource = CanvasSourceCards;
         EventAggService.EventsChanged += OnEventsChanged;
         _ = SettingsRetriever.InitializeAsync();
         _refreshSchedService = new RefreshSchedService(
@@ -167,21 +170,27 @@ public sealed partial class WidgetWindow : Window
 
     private async Task RefreshCustomizationCardsAsync()
     {
-        GoogleSourceCards.Clear();
-        CanvasSourceCards.Clear();
+        int generation = ++_customizationCardsRefreshGeneration;
 
-        foreach (var sourceCard in await BuildSourceCardsAsync("Google"))
+        List<SourceCustomizationCard> googleCards = await BuildSourceCardsAsync("Google");
+        List<SourceCustomizationCard> canvasCards = await BuildSourceCardsAsync("Canvas");
+
+        if (generation != _customizationCardsRefreshGeneration)
+        {
+            return;
+        }
+
+        GoogleSourceCards.Clear();
+        foreach (var sourceCard in googleCards)
         {
             GoogleSourceCards.Add(sourceCard);
         }
 
-        foreach (var sourceCard in await BuildSourceCardsAsync("Canvas"))
+        CanvasSourceCards.Clear();
+        foreach (var sourceCard in canvasCards)
         {
             CanvasSourceCards.Add(sourceCard);
         }
-
-        GoogleSourceCardsList.ItemsSource = GoogleSourceCards;
-        CanvasSourceCardsList.ItemsSource = CanvasSourceCards;
     }
 
     private void OnEventsChanged(object? sender, EventArgs e)
