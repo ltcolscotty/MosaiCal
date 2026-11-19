@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -39,6 +40,10 @@ public sealed partial class WidgetWindow : Window
     public WidgetWindow()
     {
         InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        SettingsNav.SelectedItem = SettingsNav.MenuItems[0];
         GoogleSourceCardsList.ItemsSource = GoogleSourceCards;
         CanvasSourceCardsList.ItemsSource = CanvasSourceCards;
         EventAggService.EventsChanged += OnEventsChanged;
@@ -105,6 +110,20 @@ public sealed partial class WidgetWindow : Window
         _ = UpdateConnectionStatusAsync();
         _ = RefreshCustomizationCardsAsync();
         _ = UpdateViewSourceAvailabilityAsync();
+    }
+
+    private void SettingsNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItem is not NavigationViewItem item)
+        {
+            return;
+        }
+
+        string page = item.Tag as string ?? "General";
+        GeneralPage.Visibility = page == "General" ? Visibility.Visible : Visibility.Collapsed;
+        GooglePage.Visibility = page == "Google" ? Visibility.Visible : Visibility.Collapsed;
+        CanvasPage.Visibility = page == "Canvas" ? Visibility.Visible : Visibility.Collapsed;
+        sender.Header = item.Content;
     }
 
     private async Task UpdateViewSourceAvailabilityAsync()

@@ -26,43 +26,59 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Header -->
             <RowDefinition Height="*"/>
-            <!-- TabView -->
         </Grid.RowDefinitions>
 
-        <!-- Header (logo + title) -->
-        <Grid Grid.Row="0" Padding="10">
+        <Grid x:Name="AppTitleBar"
+              Grid.Row="0"
+              Height="48"
+              Padding="16,0,0,0"
+              ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-
-            <!-- Logo -->
-            <Image Source="Assets/logo.png"
-               Width="32"
-               Height="32"
-               VerticalAlignment="Center"/>
-
-            <!-- Title -->
-            <TextBlock Text="MosaiCal"
-                   Grid.Column="1"
+            <Image Source="ms-appx:///Assets/mosaical-icon.svg"
+                   Width="18"
+                   Height="18"
                    VerticalAlignment="Center"
-                   Margin="10,10,10,0"
-                   FontSize="30"
-                   FontWeight="SemiBold"/>
-
+                   AutomationProperties.AccessibilityView="Raw"/>
+            <TextBlock Grid.Column="1"
+                       Text="MosaiCal"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- Tabs -->
-        <muxc:TabView
-        Grid.Row="1"
-        IsAddTabButtonVisible="False"
-        TabWidthMode="SizeToContent">
+        <muxc:NavigationView x:Name="SettingsNav"
+                             Grid.Row="1"
+                             PaneDisplayMode="Auto"
+                             ExpandedModeThresholdWidth="720"
+                             OpenPaneLength="200"
+                             IsBackButtonVisible="Collapsed"
+                             IsSettingsVisible="False"
+                             IsTitleBarAutoPaddingEnabled="False"
+                             Header="General"
+                             SelectionChanged="SettingsNavSelectionChanged">
+            <muxc:NavigationView.MenuItems>
+                <muxc:NavigationViewItem Content="General" Tag="General">
+                    <muxc:NavigationViewItem.Icon>
+                        <muxc:SymbolIcon Symbol="Setting"/>
+                    </muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
+                <muxc:NavigationViewItem Content="Google" Tag="Google">
+                    <muxc:NavigationViewItem.Icon>
+                        <muxc:SymbolIcon Symbol="Calendar"/>
+                    </muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
+                <muxc:NavigationViewItem Content="Canvas" Tag="Canvas">
+                    <muxc:NavigationViewItem.Icon>
+                        <muxc:ImageIcon Source="ms-appx:///Assets/canvas-lms.png"/>
+                    </muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
+            </muxc:NavigationView.MenuItems>
 
-            <muxc:TabViewItem Header="Main" IsClosable="False">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <Grid>
+                <ScrollViewer x:Name="GeneralPage" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Padding="16" Spacing="8" HorizontalAlignment="Stretch">
                         <muxc:Expander Header="Sources"
                                       HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
@@ -82,12 +98,11 @@
                             <StackPanel Spacing="8" Padding="8,4,8,8">
                                 <ComboBox x:Name="PrimaryViewSelector"
                                           Header="Calendar view"
-                                          HeaderTemplate="{StaticResource SettingsSectionHeaderTemplate}"
                                           SelectionChanged="PrimaryViewChanged"
                                           HorizontalAlignment="Stretch">
-                                    <ComboBoxItem Content="TodoView"/>
-                                    <ComboBoxItem Content="DayView"/>
-                                    <ComboBoxItem Content="WeekView"/>
+                                    <ComboBoxItem Content="To-do list"/>
+                                    <ComboBoxItem Content="Day"/>
+                                    <ComboBoxItem Content="Week"/>
                                 </ComboBox>
                                 <CheckBox x:Name="EnablePrimaryView"
                                           Content="Enable calendar view"
@@ -136,7 +151,6 @@
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
                             <muxc:RadioButtons x:Name="BkgStyleRadioSettings"
-                                               FontSize="20"
                                                SelectedIndex="0"
                                                SelectionChanged="BkgStyleChanged"
                                                Padding="8,4,8,8">
@@ -147,14 +161,9 @@
                         </muxc:Expander>
                     </StackPanel>
                 </ScrollViewer>
-            </muxc:TabViewItem>
 
-            <muxc:TabViewItem Header="Google" IsClosable="False">
-                <Grid Padding="16">
+                <Grid x:Name="GooglePage" Padding="16" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
@@ -166,14 +175,16 @@
                         <StackPanel x:Name="GoogleSignedOutPanel">
                             <Button x:Name="GoogleSI"
                                     Click="GoogleSIClick"
+                                    AutomationProperties.Name="Sign in with Google"
                                     Padding="0"
-                                    Margin="0">
+                                    Margin="0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    CornerRadius="5">
                                 <Image Source="ms-appx:///Assets/google-si-neutral.png"
-                                       Width="108"
-                                       Height="24"
-                                       Stretch="UniformToFill"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center" />
+                                       Width="175"
+                                       Height="40"
+                                       Stretch="Uniform" />
                             </Button>
                         </StackPanel>
                         <Border x:Name="GoogleAccountCard"
@@ -230,8 +241,10 @@
                                    Text="Not connected"
                                    TextWrapping="Wrap" />
                     </Grid>
-                    <Grid Grid.Row="1" >
-                        <ListView x:Name="GoogleSourceCardsList">
+                    <Grid Grid.Row="1" Margin="0,8,0,0">
+                        <ListView x:Name="GoogleSourceCardsList"
+                                  SelectionMode="None"
+                                  IsItemClickEnabled="False">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="{Binding BackgroundBrush}" CornerRadius="12" Padding="12" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
@@ -251,21 +264,22 @@
                         </ListView>
                     </Grid>
                 </Grid>
-            </muxc:TabViewItem>
 
-            <muxc:TabViewItem Header="Canvas" IsClosable="False">
-                <Grid Padding="16">
+                <Grid x:Name="CanvasPage" Padding="16" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
-                    <Grid Grid.Row="0" ColumnSpacing="12" Padding="0,10">
+                    <Grid Grid.Row="0" ColumnSpacing="12" RowSpacing="4" Padding="0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <muxc:TextBox x:Name="CanvasCalLinkInput"
                                       Header="Canvas Calendar Feed URL"
                                       PlaceholderText="https://canvas.asu.edu/feeds/calendars/---.ics" />
@@ -282,9 +296,8 @@
                             </StackPanel>
                         </muxc:Button>
                         <TextBlock x:Name="CanvasLinkStatus"
-                                   Grid.Column="2"
-                                   VerticalAlignment="Bottom"
-                                   Margin="0,0,0,8"
+                                   Grid.Row="1"
+                                   Grid.ColumnSpan="2"
                                    TextWrapping="Wrap" />
                     </Grid>
                     <Grid Grid.Row="1" ColumnSpacing="12" Padding="0,0,0,10">
@@ -299,7 +312,9 @@
                                    TextWrapping="Wrap" />
                     </Grid>
                     <Grid Grid.Row="2">
-                        <ListView x:Name="CanvasSourceCardsList">
+                        <ListView x:Name="CanvasSourceCardsList"
+                                  SelectionMode="None"
+                                  IsItemClickEnabled="False">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="{Binding BackgroundBrush}" CornerRadius="12" Padding="12" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
@@ -319,8 +334,7 @@
                         </ListView>
                     </Grid>
                 </Grid>
-            </muxc:TabViewItem>
-
-        </muxc:TabView>
+            </Grid>
+        </muxc:NavigationView>
     </Grid>
 </Window>
