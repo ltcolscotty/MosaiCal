@@ -83,7 +83,7 @@ public sealed partial class WeekViewWindow : Window
         }
 
         var storedEvents = await EventAggService.ReadUpcomingEventsMessagePackAsync(dataPath);
-        foreach (CalEventDto calendarEvent in storedEvents.Values
+        foreach (CalEventDto calendarEvent in storedEvents.Values.Where(CalendarEventDisplayService.IsSourceVisible)
             .Where(calendarEvent =>
             {
                 DateTime localDate = calendarEvent.Datetime.ToLocalTime().Date;

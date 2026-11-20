@@ -78,7 +78,7 @@ public sealed partial class DayViewWindow : Window
         }
 
         var storedEvents = await EventAggService.ReadUpcomingEventsMessagePackAsync(dataPath);
-        foreach (CalEventDto calendarEvent in storedEvents.Values
+        foreach (CalEventDto calendarEvent in storedEvents.Values.Where(CalendarEventDisplayService.IsSourceVisible)
             .Where(calendarEvent => calendarEvent.Datetime.ToLocalTime().Date == today)
             .OrderBy(calendarEvent => calendarEvent.Datetime))
         {
