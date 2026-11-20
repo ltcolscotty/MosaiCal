@@ -21,7 +21,7 @@ Target: Winter 2027
 
 #### Reliability
 
-- [ ] Race condition on startup for open on start dialouge
+- [x] Race condition on startup for open on start dialouge
 - [ ] Prevent multiple controllers from opening
 - [ ] Basic checks for memory leaks
 - [ ] Test extended runtime
