@@ -10,13 +10,13 @@
     Title="MosaiCal Day View">
 
 
-        <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,*" Background="#202020">
+        <Grid Padding="16" RowDefinitions="Auto,Auto,Auto,Auto,*">
 
                 <TextBlock
                     x:Name="DayText"
                     FontSize="18"
                     FontWeight="SemiBold"
-                    Foreground="White"/>
+                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <TextBlock
                     x:Name="DateText"
@@ -24,21 +24,21 @@
                     Margin="0,2,0,16"
                     FontSize="24"
                     FontWeight="Bold"
-                    Foreground="White"/>
+                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <TextBlock
                     Grid.Row="2"
                     Text="Today's Schedule"
                     FontSize="16"
                     FontWeight="SemiBold"
-                    Foreground="#DDDDDD"/>
+                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
                 <TextBlock
                     x:Name="EmptyState"
                     Grid.Row="3"
                     Margin="0,12,0,0"
                     Text="No events today"
-                    Foreground="#BBBBBB"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Visibility="Collapsed"/>
 
                 <ScrollViewer

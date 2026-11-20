@@ -10,10 +10,6 @@
     Title="MosaiCal Widget"
     >
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
-
     <Grid>
         <Grid.Resources>
             <DataTemplate x:Key="SettingsSectionHeaderTemplate">
@@ -289,33 +285,81 @@
                                       IsExpanded="True"
                                       HorizontalAlignment="Stretch"
                                       HorizontalContentAlignment="Stretch">
-                            <StackPanel Spacing="16" Padding="8,4,8,8">
-                                <muxc:RadioButtons x:Name="BkgStyleRadioSettings"
-                                                   Header="Background style"
-                                                   SelectedIndex="0"
-                                                   SelectionChanged="BkgStyleChanged">
-                                    <x:String>Solid</x:String>
-                                    <x:String>Mica</x:String>
-                                    <x:String>Acrylic</x:String>
-                                </muxc:RadioButtons>
-                                <muxc:NumberBox x:Name="WindowTransparencyInput"
-                                                Header="Window transparency (%)"
-                                                Minimum="0"
-                                                Maximum="100"
-                                                SmallChange="5"
-                                                LargeChange="10"
-                                                SpinButtonPlacementMode="Inline"
-                                                ValidationMode="InvalidInputOverwritten"
-                                                HorizontalAlignment="Left"
-                                                MinWidth="160"
-                                                ValueChanged="WindowTransparencyInputChanged" />
+                            <StackPanel Spacing="20" Padding="8,4,8,8">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Calendar widget" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <muxc:RadioButtons x:Name="WidgetBkgStyleRadio"
+                                                       Header="Background style"
+                                                       Tag="Widget"
+                                                       SelectedIndex="0"
+                                                       SelectionChanged="BkgStyleChanged">
+                                        <x:String>Solid</x:String>
+                                        <x:String>Mica</x:String>
+                                        <x:String>Acrylic</x:String>
+                                    </muxc:RadioButtons>
+                                    <StackPanel x:Name="WidgetSolidColorPanel" Spacing="8" Visibility="Collapsed">
+                                        <TextBlock Text="Background color" />
+                                        <Button Tag="Widget"
+                                                Click="PickBackgroundSolidColorClick"
+                                                AutomationProperties.Name="Choose calendar widget background color">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border x:Name="WidgetColorSwatch"
+                                                        Width="20"
+                                                        Height="20"
+                                                        CornerRadius="4"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
+                                                <TextBlock x:Name="WidgetColorText" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <muxc:NumberBox x:Name="WindowTransparencyInput"
+                                                    Header="Window transparency (%)"
+                                                    Minimum="0"
+                                                    Maximum="100"
+                                                    SmallChange="5"
+                                                    LargeChange="10"
+                                                    SpinButtonPlacementMode="Inline"
+                                                    ValidationMode="InvalidInputOverwritten"
+                                                    HorizontalAlignment="Left"
+                                                    MinWidth="160"
+                                                    ValueChanged="WindowTransparencyInputChanged" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="Settings window" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <muxc:RadioButtons x:Name="SettingsBkgStyleRadio"
+                                                       Header="Background style"
+                                                       Tag="Settings"
+                                                       SelectedIndex="1"
+                                                       SelectionChanged="BkgStyleChanged">
+                                        <x:String>Solid</x:String>
+                                        <x:String>Mica</x:String>
+                                        <x:String>Acrylic</x:String>
+                                    </muxc:RadioButtons>
+                                    <StackPanel x:Name="SettingsSolidColorPanel" Spacing="8" Visibility="Collapsed">
+                                        <TextBlock Text="Background color" />
+                                        <Button Tag="Settings"
+                                                Click="PickBackgroundSolidColorClick"
+                                                AutomationProperties.Name="Choose settings window background color">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Border x:Name="SettingsColorSwatch"
+                                                        Width="20"
+                                                        Height="20"
+                                                        CornerRadius="4"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" />
+                                                <TextBlock x:Name="SettingsColorText" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </muxc:Expander>
                     </StackPanel>
                 </ScrollViewer>
 
                 <Grid x:Name="GooglePage" Padding="16" Visibility="Collapsed">
-                    <!-- Same structure as CanvasPage: connection, sync row, calendar list -->
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>

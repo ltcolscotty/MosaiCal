@@ -35,6 +35,9 @@ public class ConfigOptions
     public string BackgroundImage { get; set; } = "";
     public BackgroundSettingEnum BackgroundSetting { get; set; } = BackgroundSettingEnum.Color;
     public BackgroundTypeEnum BackgroundType { get; set; } = BackgroundTypeEnum.Solid;
+    public string WidgetBackgroundColor { get; set; } = "#202020";
+    public BackgroundTypeEnum SettingsBackgroundType { get; set; } = BackgroundTypeEnum.Mica;
+    public string SettingsBackgroundColor { get; set; } = "#202020";
     public string FontFamily {get; set; } = "Segoe UI";
     public int FontSize { get; set; } = 12;
     public bool GoogleEnabled { get; set; } = false;

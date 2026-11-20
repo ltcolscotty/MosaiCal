@@ -65,6 +65,9 @@ public sealed partial class ColorSelector : UserControl
         ? $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}"
         : $"#{color.R:X2}{color.G:X2}{color.B:X2}";
 
+    public static bool IsLight(Color color) =>
+        (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255.0 > 0.6;
+
     /// <summary>Parses "#RRGGBB" or "#AARRGGBB" (leading '#' optional).</summary>
     public static bool TryParseHex(string? text, out Color color)
     {

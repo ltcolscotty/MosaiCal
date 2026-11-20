@@ -39,6 +39,7 @@ public sealed partial class WidgetWindow : Window
     private bool _isUpdatingPrimaryViewControl;
     private bool _isUpdatingStartAtSignInControl;
     private bool _hasConfiguredSource;
+    private bool _isLoadingBackgroundControls = true;
 
     public WidgetWindow()
     {
@@ -81,13 +82,9 @@ public sealed partial class WidgetWindow : Window
 
         _ = _refreshSchedService.RunAsync();
 
-        BkgStyleRadioSettings.SelectedIndex = SettingsRetriever.GetBackgroundType() switch
-        {
-            BackgroundTypeEnum.Solid => 0,
-            BackgroundTypeEnum.Mica => 1,
-            BackgroundTypeEnum.Acrylic => 2,
-            _ => 0
-        };
+        WidgetBkgStyleRadio.SelectedIndex = (int)SettingsRetriever.GetBackgroundType();
+        SettingsBkgStyleRadio.SelectedIndex = (int)SettingsRetriever.GetSettingsBackgroundType();
+        _isLoadingBackgroundControls = false;
 
         CanvasCalLinkInput.Text = SettingsRetriever.GetCanvasICSLink();
         UpdateCanvasConnectButtonText();
@@ -672,13 +669,11 @@ public sealed partial class WidgetWindow : Window
         {
             get
             {
-                if (HasImage || !ColorSelector.TryParseHex(BackgroundColor, out Windows.UI.Color c))
-                {
-                    return ElementTheme.Dark;
-                }
-
-                double luminance = (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) / 255.0;
-                return luminance > 0.6 ? ElementTheme.Light : ElementTheme.Dark;
+                return !HasImage &&
+                       ColorSelector.TryParseHex(BackgroundColor, out Windows.UI.Color c) &&
+                       ColorSelector.IsLight(c)
+                    ? ElementTheme.Light
+                    : ElementTheme.Dark;
             }
         }
         public string BackgroundColor { get; set; } = "#3A3A3A";
@@ -688,7 +683,23 @@ public sealed partial class WidgetWindow : Window
 
     private void BkgStyleChanged(object sender, SelectionChangedEventArgs e)
     {
-        SaveBackgroundType();
+        if (_isLoadingBackgroundControls ||
+            sender is not RadioButtons { SelectedIndex: >= 0 } radios ||
+            !Enum.IsDefined(typeof(BackgroundTypeEnum), radios.SelectedIndex))
+        {
+            return;
+        }
+
+        var backgroundType = (BackgroundTypeEnum)radios.SelectedIndex;
+        if (radios.Tag as string == "Settings")
+        {
+            SettingsRetriever.SetSettingsBackgroundType(backgroundType);
+        }
+        else
+        {
+            SettingsRetriever.SetBackgroundType(backgroundType);
+        }
+
         ApplyBackgroundType();
     }
 
@@ -762,23 +773,6 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
-    private void SaveBackgroundType()
-    {
-        if (BkgStyleRadioSettings.SelectedItem is not string selectedStyle)
-        {
-            return;
-        }
-
-        BackgroundTypeEnum backgroundType = selectedStyle switch
-        {
-            "Mica" => BackgroundTypeEnum.Mica,
-            "Acrylic" => BackgroundTypeEnum.Acrylic,
-            _ => BackgroundTypeEnum.Solid
-        };
-
-        SettingsRetriever.SetBackgroundType(backgroundType);
-    }
-    
     private async void CanvasSaveClick(object sender, RoutedEventArgs e)
     {
         bool response = SettingsRetriever.SetCanvasICSLink(CanvasCalLinkInput.Text);
@@ -1007,7 +1001,59 @@ public sealed partial class WidgetWindow : Window
 
     private void ApplyBackgroundType()
     {
-        WindowConfiguration.ApplyBackground(this);
+        WindowConfiguration.ApplySettingsBackground(this);
+
+        UpdateSolidColorControls(
+            SettingsRetriever.GetBackgroundType(),
+            SettingsRetriever.GetWidgetBackgroundColor(),
+            WidgetSolidColorPanel, WidgetColorSwatch, WidgetColorText);
+        UpdateSolidColorControls(
+            SettingsRetriever.GetSettingsBackgroundType(),
+            SettingsRetriever.GetSettingsBackgroundColor(),
+            SettingsSolidColorPanel, SettingsColorSwatch, SettingsColorText);
+    }
+
+    private static void UpdateSolidColorControls(
+        BackgroundTypeEnum backgroundType, string hex, UIElement panel, Border swatch, TextBlock text)
+    {
+        panel.Visibility = backgroundType == BackgroundTypeEnum.Solid ? Visibility.Visible : Visibility.Collapsed;
+        ColorSelector.TryParseHex(hex, out Windows.UI.Color color);
+        swatch.Background = new SolidColorBrush(color);
+        text.Text = ColorSelector.ToHex(color);
+    }
+
+    private async void PickBackgroundSolidColorClick(object sender, RoutedEventArgs e)
+    {
+        bool isSettingsWindow = (sender as FrameworkElement)?.Tag as string == "Settings";
+        try
+        {
+            string current = isSettingsWindow
+                ? SettingsRetriever.GetSettingsBackgroundColor()
+                : SettingsRetriever.GetWidgetBackgroundColor();
+            string? hex = await ColorSelectorDialog.PickHexAsync(
+                Content.XamlRoot,
+                current,
+                isSettingsWindow ? "Settings window color" : "Calendar widget color");
+            if (hex == null || hex.Equals(current, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            if (isSettingsWindow)
+            {
+                SettingsRetriever.SetSettingsBackgroundColor(hex);
+            }
+            else
+            {
+                SettingsRetriever.SetWidgetBackgroundColor(hex);
+            }
+
+            ApplyBackgroundType();
+        }
+        catch (Exception exception)
+        {
+            LoggerService.LogException("WidgetWindow: Failed to change background color.", exception);
+        }
     }
 
     private void GoogleToggled(object sender, RoutedEventArgs e)

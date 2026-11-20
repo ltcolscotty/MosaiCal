@@ -25,7 +25,11 @@ internal static class SettingsRetriever
     private static readonly string settingsFile;
     private static readonly object optionsLock = new();
 
+    private static FileSystemWatcher? optionsWatcher;
+    private static Timer? optionsReloadTimer;
+
     public static event Action<int>? WindowTransparencyChanged;
+    public static event Action? WidgetBackgroundChanged;
 
     static SettingsRetriever() 
     {
@@ -61,6 +65,43 @@ internal static class SettingsRetriever
                     WriteOptionsToDisk(options);
                 }
             }
+        }
+
+        optionsReloadTimer = new Timer(_ => ReloadAppearanceFromDisk(), null, Timeout.Infinite, Timeout.Infinite);
+        optionsWatcher = new FileSystemWatcher(appDataLocalFolder, Path.GetFileName(settingsFile))
+        {
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
+        };
+        optionsWatcher.Changed += (_, _) => optionsReloadTimer.Change(150, Timeout.Infinite);
+        optionsWatcher.Created += (_, _) => optionsReloadTimer.Change(150, Timeout.Infinite);
+        optionsWatcher.Renamed += (_, _) => optionsReloadTimer.Change(150, Timeout.Infinite);
+        optionsWatcher.EnableRaisingEvents = true;
+    }
+
+    private static void ReloadAppearanceFromDisk()
+    {
+        try
+        {
+            BackgroundTypeEnum oldType = options.BackgroundType;
+            string oldColor = options.WidgetBackgroundColor;
+            int oldTransparency = GetWindowTransparency();
+
+            ReloadOptionsFromDisk();
+
+            if (options.BackgroundType != oldType ||
+                !string.Equals(options.WidgetBackgroundColor, oldColor, StringComparison.OrdinalIgnoreCase))
+            {
+                WidgetBackgroundChanged?.Invoke();
+            }
+
+            if (GetWindowTransparency() != oldTransparency)
+            {
+                WindowTransparencyChanged?.Invoke(GetWindowTransparency());
+            }
+        }
+        catch (Exception exception)
+        {
+            LoggerService.LogException("SettingsRetriever: Failed to reload appearance settings from disk.", exception);
         }
     }
 
@@ -281,6 +322,29 @@ internal static class SettingsRetriever
     public static void SetBackgroundType(BackgroundTypeEnum backgroundType)
     {
         UpdateOptions(o => o.BackgroundType = backgroundType);
+        WidgetBackgroundChanged?.Invoke();
+    }
+
+    public static string GetWidgetBackgroundColor() { return options.WidgetBackgroundColor; }
+
+    public static void SetWidgetBackgroundColor(string hexColor)
+    {
+        UpdateOptions(o => o.WidgetBackgroundColor = hexColor);
+        WidgetBackgroundChanged?.Invoke();
+    }
+
+    public static BackgroundTypeEnum GetSettingsBackgroundType() { return options.SettingsBackgroundType; }
+
+    public static void SetSettingsBackgroundType(BackgroundTypeEnum backgroundType)
+    {
+        UpdateOptions(o => o.SettingsBackgroundType = backgroundType);
+    }
+
+    public static string GetSettingsBackgroundColor() { return options.SettingsBackgroundColor; }
+
+    public static void SetSettingsBackgroundColor(string hexColor)
+    {
+        UpdateOptions(o => o.SettingsBackgroundColor = hexColor);
     }
     public static GoogleCalOptions GetGoogleCalOptions()
     {

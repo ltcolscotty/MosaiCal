@@ -1,6 +1,8 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using MosaiCal.Controls;
 using MosaiCal.Models;
 using MosaiCal.Platform;
 using MosaiCal.Services;
@@ -34,7 +36,17 @@ internal static class WindowConfiguration
             }
         }
 
-        ApplyBackground(window);
+        if (isWidgetViewActive)
+        {
+            ApplySettingsBackground(window);
+        }
+        else
+        {
+            ApplyWidgetBackground(window);
+            Action backgroundChanged = () => window.DispatcherQueue.TryEnqueue(() => ApplyWidgetBackground(window));
+            SettingsRetriever.WidgetBackgroundChanged += backgroundChanged;
+            window.Closed += (_, _) => SettingsRetriever.WidgetBackgroundChanged -= backgroundChanged;
+        }
 
         if (managedWindowKind is not ManagedWindowKind kind)
         {
@@ -88,14 +100,38 @@ internal static class WindowConfiguration
         }
     }
 
-    public static void ApplyBackground(Window window)
+    public static void ApplyWidgetBackground(Window window) =>
+        ApplyBackground(window, SettingsRetriever.GetBackgroundType(), SettingsRetriever.GetWidgetBackgroundColor());
+
+    public static void ApplySettingsBackground(Window window) =>
+        ApplyBackground(window, SettingsRetriever.GetSettingsBackgroundType(), SettingsRetriever.GetSettingsBackgroundColor());
+
+    private static void ApplyBackground(Window window, BackgroundTypeEnum backgroundType, string solidColorHex)
     {
-        window.SystemBackdrop = SettingsRetriever.GetBackgroundType() switch
+        window.SystemBackdrop = backgroundType switch
         {
             BackgroundTypeEnum.Mica => new MicaBackdrop(),
             BackgroundTypeEnum.Acrylic => new DesktopAcrylicBackdrop(),
             _ => null
         };
+
+        if (window.Content is not Panel root)
+        {
+            return;
+        }
+
+        if (backgroundType == BackgroundTypeEnum.Solid)
+        {
+            // No system backdrop, so fill the window ourselves and pick a readable text theme.
+            ColorSelector.TryParseHex(solidColorHex, out Windows.UI.Color color);
+            root.Background = new SolidColorBrush(color);
+            root.RequestedTheme = ColorSelector.IsLight(color) ? ElementTheme.Light : ElementTheme.Dark;
+        }
+        else
+        {
+            root.Background = null; // let Mica/Acrylic show through
+            root.RequestedTheme = ElementTheme.Default;
+        }
     }
 
     private static void ApplyWindowTransparency(Window window, int transparencyPercentage)
