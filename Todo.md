@@ -7,7 +7,7 @@ Target: Winter 2027
 - [x] Automatic refreshing
 - [x] On startup request
 - [x] Prevent processes from interrupting shutdown
-- [ ] Disable specific sources
+- [x] Disable specific sources
 - [x] Default fallback case for unsupported universities in parsing handler
 - [x] Bracket edge case in assignment name parsing
   - [x] Tighten up regexes
