@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using MosaiCal.Controls;
 using MosaiCal.Models;
 using MosaiCal.Services;
 using System;
@@ -377,7 +378,7 @@ public sealed partial class WidgetWindow : Window
         };
 
         card.BackgroundBrush = CreateBackgroundBrush(card);
-        card.StatusText = card.HasImage ? "Image configured" : "No image configured";
+        card.StatusText = card.HasImage ? "Image configured" : $"Solid color {card.BackgroundColor.ToUpperInvariant()}";
         return card;
     }
 
@@ -514,6 +515,35 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
+    private async void PickBackgroundColorClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: SourceCustomizationCard card } || card.HasImage)
+        {
+            return;
+        }
+
+        try
+        {
+            string? hex = await ColorSelectorDialog.PickHexAsync(
+                Content.XamlRoot,
+                card.BackgroundColor,
+                $"Color for {card.DisplayName}");
+            if (hex == null || hex.Equals(card.BackgroundColor, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await SettingsRetriever.SetSourceBackgroundColorAsync(
+                CalendarSourceIdentity.FromValues(card.Provider, card.SourceId),
+                hex);
+            await RefreshCustomizationCardsAsync();
+        }
+        catch (Exception exception)
+        {
+            LoggerService.LogException("WidgetWindow: Failed to change event group background color.", exception);
+        }
+    }
+
     private async void RemoveBackgroundImageClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button button && button.DataContext is SourceCustomizationCard card)
@@ -636,8 +666,21 @@ public sealed partial class WidgetWindow : Window
         public string ImagePath { get; set; } = string.Empty;
         public bool HasImage { get; set; }
         public Visibility RemoveImageVisibility => HasImage ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility PickColorVisibility => HasImage ? Visibility.Collapsed : Visibility.Visible;
         public Visibility ImageOverlayVisibility => HasImage ? Visibility.Visible : Visibility.Collapsed;
-        public ElementTheme CardTheme => HasImage ? ElementTheme.Dark : ElementTheme.Default;
+        public ElementTheme CardTheme
+        {
+            get
+            {
+                if (HasImage || !ColorSelector.TryParseHex(BackgroundColor, out Windows.UI.Color c))
+                {
+                    return ElementTheme.Dark;
+                }
+
+                double luminance = (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) / 255.0;
+                return luminance > 0.6 ? ElementTheme.Light : ElementTheme.Dark;
+            }
+        }
         public string BackgroundColor { get; set; } = "#3A3A3A";
         public string StatusText { get; set; } = "No image configured";
         public Brush BackgroundBrush { get; set; } = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 58, 58, 58));

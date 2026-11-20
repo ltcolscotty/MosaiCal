@@ -54,6 +54,9 @@
                                               MinWidth="0"
                                               AutomationProperties.Name="Show events from this group"
                                               Toggled="SourceVisibilityToggled" />
+                                <Button Content="Pick color"
+                                        Click="PickBackgroundColorClick"
+                                        Visibility="{Binding PickColorVisibility}" />
                                 <Button Content="Pick image" Click="ChooseBackgroundImageClick" />
                                 <Button Content="Remove image"
                                         Click="RemoveBackgroundImageClick"

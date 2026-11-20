@@ -114,6 +114,61 @@ internal static class SettingsRetriever
         return sourceConfigs; 
     }
 
+    /// <summary>
+    /// Saves a solid background color for one event group. Reads the latest file first so
+    /// entries this process filtered out or another process wrote are kept
+    /// </summary>
+    public static async Task SetSourceBackgroundColorAsync(CalendarSourceIdentity source, string hexColor)
+    {
+        if (source.IsEmpty)
+        {
+            return;
+        }
+
+        await sourceConfigLoadLock.WaitAsync();
+        try
+        {
+            Dictionary<string, EventTypeConfig> latest = await LoadEventTypeConfigs(ETCSettingsFile);
+            string key = latest.Keys.FirstOrDefault(k => k.Equals(source.Key, StringComparison.OrdinalIgnoreCase))
+                ?? latest.FirstOrDefault(pair => pair.Value.Source.Equals(source.SourceId, StringComparison.OrdinalIgnoreCase)).Key
+                ?? source.Key;
+
+            if (!latest.TryGetValue(key, out EventTypeConfig? config))
+            {
+                config = new EventTypeConfig { Source = source.SourceId };
+                latest[key] = config;
+            }
+
+            config.BkgColor = hexColor;
+
+            string temporaryPath = $"{ETCSettingsFile}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                await File.WriteAllBytesAsync(temporaryPath, MessagePackSerializer.Serialize(latest));
+                File.Move(temporaryPath, ETCSettingsFile, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+
+            sourceConfigs = latest
+                .Where(pair => pair.Value.Enabled)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            initializedAsyncStatus = true;
+        }
+        finally
+        {
+            sourceConfigLoadLock.Release();
+        }
+
+        LoggerService.Log($"SettingsRetriever: Set background color for '{source.Key}' to {hexColor}.");
+        EventAggService.NotifyViewsChanged();
+    }
+
     private static void QueueSourceConfigReload()
     {
         LoggerService.Log("SettingsRetriever: Source customization file changed; debounce reload queued.");
