@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MosaiCal.Controls.ColorSelector"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls">
+
+    <!--
+        Color wheel (hue/saturation ring), brightness slider, and RGB / hex inputs.
+        Use Color or HexColor to read/write the selection; ColorChanged fires on every change.
+    -->
+    <muxc:ColorPicker x:Name="Picker"
+                      ColorSpectrumShape="Ring"
+                      ColorSpectrumComponents="HueSaturation"
+                      IsColorSpectrumVisible="True"
+                      IsColorSliderVisible="True"
+                      IsColorChannelTextInputVisible="True"
+                      IsHexInputVisible="True"
+                      IsColorPreviewVisible="True"
+                      IsMoreButtonVisible="False"
+                      IsAlphaEnabled="False"
+                      ColorChanged="PickerColorChanged" />
+</UserControl>
