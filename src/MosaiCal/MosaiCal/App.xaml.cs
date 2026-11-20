@@ -2,7 +2,6 @@
 using MosaiCal.Services;
 using MosaiCal.ViewWindows.WidgetView;
 using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -57,8 +56,7 @@ namespace MosaiCal
         /// <param name="args">Details about the launch request and process.</param>
         protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            StartupLaunchService.SyncWithSettings();
-            if (IsStartupLaunch(args.Arguments))
+            if (StartupLaunchService.IsStartupLaunch(args.Arguments))
             {
                 if (!SettingsRetriever.GetPrimaryViewEnabled())
                 {
@@ -77,21 +75,10 @@ namespace MosaiCal
             await StartupLaunchService.RequestConsentIfNeededAsync(_window);
         }
 
-        private static bool IsStartupLaunch(string? activationArguments)
-        {
-            return string.Equals(
-                    activationArguments?.Trim(),
-                    StartupLaunchService.StartupArgument,
-                    StringComparison.OrdinalIgnoreCase) ||
-                Environment.GetCommandLineArgs().Skip(1).Any(argument =>
-                    string.Equals(argument, StartupLaunchService.StartupArgument, StringComparison.OrdinalIgnoreCase));
-        }
-
         private void OnStartupPrimaryViewClosedByUser()
         {
             ViewWindowManager.PrimaryViewClosedByUser -= OnStartupPrimaryViewClosedByUser;
             SettingsRetriever.SetPrimaryViewEnabled(false);
-            StartupLaunchService.SyncWithSettings();
         }
     }
 }

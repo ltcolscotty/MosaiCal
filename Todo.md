@@ -36,7 +36,6 @@ Target: Winter 2027
 - [ ] Signed installer
 - [ ] Test clean installation on another Windows machine
 - [ ] Test uninstall
-- [ ] Decide initial distribution method
 - [ ] Finalize Google OAuth production configuration
 
 #### Documentation & Release

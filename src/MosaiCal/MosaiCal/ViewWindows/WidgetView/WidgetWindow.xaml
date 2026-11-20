@@ -251,6 +251,25 @@
                                                   AutomationProperties.Name="Pin calendar view"
                                                   Toggled="PinnedViewToggled" />
                                 </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Open calendar view at sign-in" VerticalAlignment="Center" />
+                                    <ToggleSwitch x:Name="EnableStartAtSignIn"
+                                                  Grid.Column="1"
+                                                  OnContent="On"
+                                                  OffContent="Off"
+                                                  MinWidth="0"
+                                                  IsEnabled="False"
+                                                  AutomationProperties.Name="Open calendar view at sign-in"
+                                                  Toggled="StartAtSignInToggled" />
+                                </Grid>
+                                <TextBlock x:Name="StartAtSignInMessage"
+                                           TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           Visibility="Collapsed" />
                                 <TextBlock x:Name="ViewSourceRequirementMessage"
                                            Text="Checking configured sources..."
                                            TextWrapping="Wrap" />

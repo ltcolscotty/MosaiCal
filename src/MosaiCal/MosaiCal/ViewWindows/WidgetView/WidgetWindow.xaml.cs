@@ -36,6 +36,7 @@ public sealed partial class WidgetWindow : Window
     private bool _isUpdatingTransparencyControls;
     private bool _isUpdatingSourceControls;
     private bool _isUpdatingPrimaryViewControl;
+    private bool _isUpdatingStartAtSignInControl;
     private bool _hasConfiguredSource;
 
     public WidgetWindow()
@@ -64,6 +65,7 @@ public sealed partial class WidgetWindow : Window
             SavePendingImageDarkness(); // don't lose a slider change made just before closing
             ViewWindowManager.SetPrimaryViewManagerActive(false);
             ViewWindowManager.PrimaryViewClosedByUser -= OnPrimaryViewClosedByUser;
+            StartupLaunchService.StatusChanged -= OnStartupStatusChanged;
             EventAggService.EventsChanged -= OnEventsChanged;
             _shutdownHandler.Dispose();
             _ = _refreshSchedService.DisposeAsync();
@@ -110,6 +112,8 @@ public sealed partial class WidgetWindow : Window
         WindowTransparencyInput.Value = transparencyPercentage;
         _isUpdatingTransparencyControls = false;
         ViewWindowManager.PrimaryViewClosedByUser += OnPrimaryViewClosedByUser;
+        StartupLaunchService.StatusChanged += OnStartupStatusChanged;
+        ApplyStartupStatus(StartupLaunchService.CurrentStatus);
         ApplyBackgroundType();
         _ = UpdateConnectionStatusAsync();
         _ = RefreshCustomizationCardsAsync();
@@ -174,7 +178,7 @@ public sealed partial class WidgetWindow : Window
             _isUpdatingPrimaryViewControl = false;
         }
 
-        StartupLaunchService.SyncWithSettings();
+        _ = StartupLaunchService.SyncWithSettingsAsync();
         ViewWindowManager.SyncWithSettings();
     }
 
@@ -1111,7 +1115,7 @@ public sealed partial class WidgetWindow : Window
         }
 
         SettingsRetriever.SetPrimaryViewEnabled(true);
-        StartupLaunchService.SyncWithSettings();
+        _ = StartupLaunchService.SyncWithSettingsAsync();
         ViewWindowManager.SyncWithSettings();
     }
 
@@ -1123,17 +1127,46 @@ public sealed partial class WidgetWindow : Window
         }
 
         SettingsRetriever.SetPrimaryViewEnabled(false);
-        StartupLaunchService.SyncWithSettings();
+        _ = StartupLaunchService.SyncWithSettingsAsync();
         ViewWindowManager.SyncWithSettings();
     }
 
     private void OnPrimaryViewClosedByUser()
     {
         SettingsRetriever.SetPrimaryViewEnabled(false);
-        StartupLaunchService.SyncWithSettings();
+        _ = StartupLaunchService.SyncWithSettingsAsync();
         _isUpdatingPrimaryViewControl = true;
         EnablePrimaryView.IsOn = false;
         _isUpdatingPrimaryViewControl = false;
+    }
+
+    private async void StartAtSignInToggled(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingStartAtSignInControl)
+        {
+            return;
+        }
+
+        EnableStartAtSignIn.IsEnabled = false;
+        await StartupLaunchService.SetEnabledAsync(EnableStartAtSignIn.IsOn);
+    }
+
+    private void OnStartupStatusChanged(StartupStatus status)
+    {
+        DispatcherQueue.TryEnqueue(() => ApplyStartupStatus(status));
+    }
+
+    private void ApplyStartupStatus(StartupStatus status)
+    {
+        _isUpdatingStartAtSignInControl = true;
+        EnableStartAtSignIn.IsOn = status.IsOn;
+        EnableStartAtSignIn.IsEnabled = status.CanChange;
+        _isUpdatingStartAtSignInControl = false;
+
+        StartAtSignInMessage.Text = status.Message ?? string.Empty;
+        StartAtSignInMessage.Visibility = string.IsNullOrEmpty(status.Message)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     private void PinnedViewEnabled(object sender, RoutedEventArgs e)
