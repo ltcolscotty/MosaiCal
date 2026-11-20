@@ -4,6 +4,8 @@
 
 MosaiCal can have more than one `MosaiCal.exe` process at a time. The widget controller owns its settings window, while a calendar view may have been created by an earlier process and remain alive after that controller closes. Each process has its own `ViewWindowManager` and in-memory settings; shared files and Win32 window operations coordinate them.
 
+Only one controller may be open at a time. A non-startup launch takes the named mutex `Local\MosaiCal.Controller` before creating `WidgetWindow` and releases it when that window closes. If another process holds it, the new launch brings the existing `MosaiCal Widget` window to the front and exits. Startup launches never take the mutex, so the process that owns the calendar view does not block a later controller.
+
 The controller closing is not intended to close the primary calendar view. It publishes that manager interaction is inactive, allowing the existing view to return to its desktop-widget style while its owning process keeps the window alive.
 
 ## Ownership Model

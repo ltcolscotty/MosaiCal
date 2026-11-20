@@ -3,6 +3,7 @@ using MosaiCal.Services;
 using MosaiCal.ViewWindows.WidgetView;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -14,7 +15,10 @@ namespace MosaiCal
     /// </summary>
     public partial class App : Application
     {
+        private const string ControllerMutexName = @"Local\MosaiCal.Controller";
+        private const string ControllerWindowTitle = "MosaiCal Widget";
         private Window? _window;
+        private Mutex? _controllerMutex;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -70,9 +74,54 @@ namespace MosaiCal
                 return;
             }
 
+            if (!TryAcquireControllerMutex())
+            {
+                bool activated = Platform.Win32Interop.TryActivateWindowByTitle(ControllerWindowTitle);
+                LoggerService.Log(
+                    $"App: Another controller is already open; activatedExisting={activated}. Exiting this launch.");
+                Exit();
+                return;
+            }
+
             _window = new WidgetWindow();
+            _window.Closed += (_, _) => ReleaseControllerMutex();
             _window.Activate();
             await StartupLaunchService.RequestConsentIfNeededAsync(_window);
+        }
+
+        private bool TryAcquireControllerMutex()
+        {
+            var mutex = new Mutex(initiallyOwned: false, ControllerMutexName);
+            bool acquired;
+            try
+            {
+                acquired = mutex.WaitOne(0);
+            }
+            catch (AbandonedMutexException)
+            {
+                acquired = true;
+            }
+
+            if (!acquired)
+            {
+                mutex.Dispose();
+                return false;
+            }
+
+            _controllerMutex = mutex;
+            return true;
+        }
+
+        private void ReleaseControllerMutex()
+        {
+            if (_controllerMutex is null)
+            {
+                return;
+            }
+
+            _controllerMutex.ReleaseMutex();
+            _controllerMutex.Dispose();
+            _controllerMutex = null;
         }
 
         private void OnStartupPrimaryViewClosedByUser()
