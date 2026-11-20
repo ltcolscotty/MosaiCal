@@ -18,8 +18,6 @@ public enum BackgroundSettingEnum
     Image,
 }
 
-public enum BackgroundImageType;
-
 public enum PrimaryViewEnum
 {
     Day,

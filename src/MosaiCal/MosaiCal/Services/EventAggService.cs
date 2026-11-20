@@ -113,17 +113,6 @@ internal static class EventAggService
         }
     }
 
-    public static bool GetGoogleStatusAsync()
-    {
-        if (sourceList == null || !sourceList.TryGetValue("google", out var enabled))
-        {
-            LoggerService.Log("EventAggService: google status missing or sourceList not initialized", LoggerStatusEnum.EXCEPTION);
-            return false;
-        }
-
-        return enabled;
-    }
-
     /// <summary>
     /// Reads calendar event message pack file and returns calendar events
     /// </summary>
@@ -196,25 +185,6 @@ internal static class EventAggService
         }
     }
 
-    /// <summary>
-    /// Get events only from enabled sources
-    /// </summary>
-    /// <returns>Dictionary of keys of eventIDs with affiliated CalEventDto objects</returns>
-    public static async Task<Dictionary<IDHelper.EventID, CalEventDto>> GetFilteredDTO()
-    {
-        List<string> enabledSources = SettingsRetriever.GetActiveLongSources();
-        DateTimeOffset targetDay = DateTimeOffset.Now.AddDays(SettingsRetriever.GetTrackedDays());
-        Dictionary<IDHelper.EventID, CalEventDto> fullList = await ReadUpcomingEventsMessagePackAsync(null);
-        foreach (var(id, calEvent) in fullList)
-        {
-            if (enabledSources.Contains(calEvent.LongSource) &&
-                calEvent.Datetime <= targetDay)
-            { continue; }
-            fullList.Remove(id);
-        }
-        return fullList;
-    }
-
     public static async Task<bool?> RefreshCanvas()
     {
         CancellationToken cancellationToken = shutdownCancellation.Token;
@@ -238,7 +208,6 @@ internal static class EventAggService
         Dictionary<IDHelper.EventID, CalEventDto> calendarData = await ReadCalendarDataWithoutLockAsync(
             SettingsRetriever.GetMainDataPath(),
             cancellationToken);
-        Dictionary<string, EventTypeConfig> sourceConfig = SettingsRetriever.GetSourceConfigs();
 
         if (sourceIDs.TryGetValue("canvas", out List<IDHelper.EventID>? canvasIds))
         {
@@ -251,7 +220,6 @@ internal static class EventAggService
         var (tCalendarData, keyList) = await CanvasServ.FetchUpcomingEventsAsync(
             SettingsRetriever.GetCanvasICSLink(),
             calendarData,
-            sourceConfig,
             cancellationToken);
         calendarData = tCalendarData;
 
@@ -412,7 +380,6 @@ internal static class EventAggService
         }
 
         Dictionary<IDHelper.EventID, CalEventDto> calendarData = [];
-        Dictionary<string, EventTypeConfig> sourceConfig = SettingsRetriever.GetSourceConfigs();
         Dictionary<string, List<IDHelper.EventID>> pendingSourceIds = new();
 
         if (sourceList.TryGetValue("google", out var gEnabled) && gEnabled)
@@ -435,7 +402,6 @@ internal static class EventAggService
             var (tCalendarData, keyList) = await CanvasServ.FetchUpcomingEventsAsync(
                 SettingsRetriever.GetCanvasICSLink(),
                 calendarData,
-                sourceConfig,
                 cancellationToken);
             calendarData = tCalendarData;
             pendingSourceIds["canvas"] = keyList;
@@ -448,43 +414,6 @@ internal static class EventAggService
         }
         SettingsRetriever.setLastUpdateTime(DateTimeOffset.Now);
         QueueEventsChanged();
-    }
-
-    /// <summary>
-    /// Refresh all source events
-    /// </summary>
-    /// <returns></returns>
-    public static async Task RefreshAllAsync()
-    {
-        CancellationToken cancellationToken = shutdownCancellation.Token;
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!CanRefreshEvents())
-        {
-            return;
-        }
-
-        await SyncSettingsFromDiskAsync();
-        await using FileStream calendarDataLock = await AcquireCalendarDataLockAsync(cancellationToken);
-
-        if (sourceList == null)
-        {
-            LoggerService.Log("EventAggService: Attempted to get events on empty source list", LoggerStatusEnum.ERROR);
-            return;
-        }
-
-        // Wrapper prevents logging
-        if (sourceList.TryGetValue("google", out var gEnabled) && gEnabled)
-        {
-            await RefreshGoogleWithoutLockAsync(cancellationToken);
-        }
-
-        if (sourceList.TryGetValue("canvas", out var cEnabled) && cEnabled)
-        {
-            await RefreshCanvasWithoutLockAsync(cancellationToken);
-        }
-
-        SettingsRetriever.setLastUpdateTime(DateTimeOffset.Now);
-        LoggerService.Log("EventAggService: All sources refreshed successfully", LoggerStatusEnum.INFO);
     }
 
     private static async Task SyncSettingsFromDiskAsync()

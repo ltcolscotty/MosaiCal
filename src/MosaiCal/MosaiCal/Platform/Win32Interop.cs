@@ -10,7 +10,6 @@ internal class Win32Interop
     private const int GWL_EXSTYLE = -20;
     private const int GWL_STYLE = -16;
 
-    private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_LAYERED = 0x00080000;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WS_EX_NOACTIVATE = 0x08000000;
@@ -201,24 +200,6 @@ internal class Win32Interop
         return previousValue != IntPtr.Zero || Marshal.GetLastPInvokeError() == 0;
     }
 
-    public static void EnableClickThrough(IntPtr hwnd)
-    {
-        if (TryGetWindowLongPtr(hwnd, GWL_EXSTYLE, out long styles))
-        {
-            styles |= WS_EX_TRANSPARENT | WS_EX_LAYERED;
-            TrySetWindowLongPtr(hwnd, GWL_EXSTYLE, styles);
-        }
-    }
-
-    public static void DisableClickThrough(IntPtr hwnd)
-    {
-        if (TryGetWindowLongPtr(hwnd, GWL_EXSTYLE, out long styles))
-        {
-            styles &= ~WS_EX_TRANSPARENT;
-            TrySetWindowLongPtr(hwnd, GWL_EXSTYLE, styles);
-        }
-    }
-
     public static bool SetWindowOpacity(IntPtr hwnd, byte opacity)
     {
         if (!TryGetWindowLongPtr(hwnd, GWL_EXSTYLE, out long styles))
@@ -229,12 +210,6 @@ internal class Win32Interop
         styles |= WS_EX_LAYERED;
         return TrySetWindowLongPtr(hwnd, GWL_EXSTYLE, styles) &&
             SetLayeredWindowAttributes(hwnd, 0, opacity, LWA_ALPHA);
-    }
-
-    public static void BringToFront(IntPtr hwnd)
-    {
-        SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     }
 
     public static bool TryActivateWindowByTitle(string title)
@@ -248,12 +223,6 @@ internal class Win32Interop
         ShowWindow(hwnd, SW_RESTORE);
         SetForegroundWindow(hwnd);
         return true;
-    }
-
-    public static void RemoveTopMost(IntPtr hwnd)
-    {
-        SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
     }
 
     public static bool SetDesktopWidgetMode(IntPtr hwnd, bool widgetManagerActive)

@@ -14,4 +14,4 @@ During confirmed Windows shutdown, source refreshes are canceled and release the
 
 ## Aggregation
 
-There are individual `Refresh<source>()` functions as well as the `RefreshAllAsync()` function to call updates and refresh data from a specific and all sources as their namesake suggests. Any new sources should continue to follow this convention where there is a dedicated refresher function and a call to it in `RefreshAllAsync()`.
+There are individual `Refresh<source>()` functions to refresh a single source, and `WriteUpcomingEventsMessagePackAsync()` refreshes every enabled source (this is what the scheduled refresh calls). Any new sources should continue to follow this convention where there is a dedicated refresher function and a call to it in `WriteUpcomingEventsMessagePackAsync()`.

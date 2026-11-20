@@ -49,8 +49,7 @@ internal class CanvasService
 
     public async Task<(Dictionary<IDHelper.EventID, CalEventDto>, List<IDHelper.EventID>)> FetchUpcomingEventsAsync(
         string sourceLink, 
-        Dictionary<IDHelper.EventID, CalEventDto> events, 
-        Dictionary<string, EventTypeConfig> sourceList,
+        Dictionary<IDHelper.EventID, CalEventDto> events,
         CancellationToken cancellationToken = default)
     {
         string school = SettingsRetriever.GetSchoolName() ?? string.Empty;

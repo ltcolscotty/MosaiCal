@@ -64,8 +64,6 @@ internal static class SettingsRetriever
         }
     }
 
-    public static BackgroundSettingEnum GetBackgroundSetting() { return options.BackgroundSetting; }
-
     public static BackgroundTypeEnum GetBackgroundType() { return options.BackgroundType; }
 
     public static int GetWindowTransparency() { return Math.Clamp(options.BackgroundTransparency, 0, 100); }
@@ -241,15 +239,6 @@ internal static class SettingsRetriever
         };
     }
 
-    public static void SetGoogleCredentials(string clientId, string clientSecret)
-    {
-        UpdateOptions(o =>
-        {
-            o.GoogleClientId = clientId.Trim();
-            o.GoogleClientSecret = clientSecret.Trim();
-        });
-    }
-
     public static void ReloadOptionsFromDisk()
     {
         lock (optionsLock)
@@ -341,10 +330,8 @@ internal static class SettingsRetriever
         UpdateOptions(o => o.School = school?.Trim() ?? string.Empty);
     }
     public static string GetMainDataPath() { return dataFile; }
-    public static bool GetInitializedStatus() { return initializedAsyncStatus; }
     public static int GetTrackedDays() { return options.TrackedDays; }
     public static int GetUpdateDurationMins() { return options.updateDurationMins; }
-    public static string GetImageDataFolder() { return SourceImageService.Instance.ManagedImageDirectory; }
 
     private static async Task<Dictionary<string, EventTypeConfig>> LoadEventTypeConfigs(string inputPath)
     {

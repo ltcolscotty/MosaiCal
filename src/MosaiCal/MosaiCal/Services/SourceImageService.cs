@@ -451,19 +451,4 @@ internal sealed class SourceImageService
     {
         return $"{(provider ?? string.Empty).Trim()}:{(sourceId ?? string.Empty).Trim()}";
     }
-
-    private static string Sanitize(string rawValue)
-    {
-        string sanitized = new string(rawValue
-            .Trim()
-            .Select(character => char.IsLetterOrDigit(character) || character == '_' || character == '-' ? character : '_')
-            .ToArray());
-
-        if (string.IsNullOrWhiteSpace(sanitized))
-        {
-            return "source";
-        }
-
-        return sanitized.Length > 80 ? sanitized[..80] : sanitized;
-    }
 }

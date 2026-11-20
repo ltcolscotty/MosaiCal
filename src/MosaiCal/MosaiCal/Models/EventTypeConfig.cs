@@ -10,10 +10,5 @@ public class EventTypeConfig
     [Key(2)] public string BkgColor { get; set; } = "#ff00ff";
     [Key(3)] public string BkgImg { get; set; } = "";
     [Key(4)] public bool Enabled { get; set; } = true;
-
-    public void Normallize()
-    {
-        //leave blank for now
-    }
 }
 

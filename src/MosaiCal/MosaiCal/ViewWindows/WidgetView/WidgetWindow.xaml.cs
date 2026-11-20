@@ -467,7 +467,7 @@ public sealed partial class WidgetWindow : Window
             card.Provider,
             card.SourceId,
             file.Path,
-            out string managedPath);
+            out _);
 
         if (assigned)
         {
@@ -969,22 +969,22 @@ public sealed partial class WidgetWindow : Window
 
     private void GoogleToggled(object sender, RoutedEventArgs e)
     {
-        if (EnableGoogle.IsOn) GoogleEnabled(sender, e); else GoogleDisabled(sender, e);
+        if (EnableGoogle.IsOn) GoogleEnabled(); else GoogleDisabled();
     }
 
     private void CanvasToggled(object sender, RoutedEventArgs e)
     {
-        if (EnableCanvas.IsOn) CanvasEnabled(sender, e); else CanvasDisabled(sender, e);
+        if (EnableCanvas.IsOn) CanvasEnabled(); else CanvasDisabled();
     }
 
     private void PrimaryViewToggled(object sender, RoutedEventArgs e)
     {
-        if (EnablePrimaryView.IsOn) PrimaryViewEnabled(sender, e); else PrimaryViewDisabled(sender, e);
+        if (EnablePrimaryView.IsOn) PrimaryViewEnabled(); else PrimaryViewDisabled();
     }
 
     private void PinnedViewToggled(object sender, RoutedEventArgs e)
     {
-        if (EnablePinnedView.IsOn) PinnedViewEnabled(sender, e); else PinnedViewDisabled(sender, e);
+        if (EnablePinnedView.IsOn) PinnedViewEnabled(); else PinnedViewDisabled();
     }
 
     private void SourceSetupClick(object sender, RoutedEventArgs e)
@@ -1024,7 +1024,7 @@ public sealed partial class WidgetWindow : Window
         EnableCanvas.IsEnabled = configured;
     }
 
-    private async void GoogleEnabled(object sender, RoutedEventArgs e)
+    private async void GoogleEnabled()
     {
         if (_isUpdatingSourceControls)
         {
@@ -1033,7 +1033,7 @@ public sealed partial class WidgetWindow : Window
 
         await SetGoogleEnabledAsync(true);
     }
-    private async void GoogleDisabled(object sender, RoutedEventArgs e)
+    private async void GoogleDisabled()
     {
         if (_isUpdatingSourceControls)
         {
@@ -1043,7 +1043,7 @@ public sealed partial class WidgetWindow : Window
         await SetGoogleEnabledAsync(false);
     }
 
-    private async void CanvasEnabled(object sender, RoutedEventArgs e)
+    private async void CanvasEnabled()
     {
         if (_isUpdatingSourceControls)
         {
@@ -1053,7 +1053,7 @@ public sealed partial class WidgetWindow : Window
         await SetCanvasEnabledAsync(true);
     }
 
-    private async void CanvasDisabled(object sender, RoutedEventArgs e)
+    private async void CanvasDisabled()
     {
         if (_isUpdatingSourceControls)
         {
@@ -1141,7 +1141,7 @@ public sealed partial class WidgetWindow : Window
         }
     }
 
-    private void PrimaryViewEnabled(object sender, RoutedEventArgs e)
+    private void PrimaryViewEnabled()
     {
         if (_isUpdatingPrimaryViewControl)
         {
@@ -1161,7 +1161,7 @@ public sealed partial class WidgetWindow : Window
         ViewWindowManager.SyncWithSettings();
     }
 
-    private void PrimaryViewDisabled(object sender, RoutedEventArgs e)
+    private void PrimaryViewDisabled()
     {
         if (_isUpdatingPrimaryViewControl)
         {
@@ -1211,7 +1211,7 @@ public sealed partial class WidgetWindow : Window
             : Visibility.Visible;
     }
 
-    private void PinnedViewEnabled(object sender, RoutedEventArgs e)
+    private void PinnedViewEnabled()
     {
         if (_isUpdatingPrimaryViewControl)
         {
@@ -1230,7 +1230,7 @@ public sealed partial class WidgetWindow : Window
         ViewWindowManager.SyncWithSettings();
     }
 
-    private void PinnedViewDisabled(object sender, RoutedEventArgs e)
+    private void PinnedViewDisabled()
     {
         if (_isUpdatingPrimaryViewControl)
         {
