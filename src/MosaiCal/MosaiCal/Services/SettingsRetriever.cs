@@ -255,11 +255,6 @@ internal static class SettingsRetriever
     {
         UpdateOptions(o => o.CanvasEnabled = enabled);
     }
-    public static bool GetPinnedViewEnabled() { return options.PinnedViewEnabled; }
-    public static void SetPinnedViewEnabled(bool enabled)
-    {
-        UpdateOptions(o => o.PinnedViewEnabled = enabled);
-    }
     public static bool GetPrimaryViewEnabled() { return options.PrimaryViewEnabled; }
     public static void SetPrimaryViewEnabled(bool enabled)
     {
@@ -275,43 +270,15 @@ internal static class SettingsRetriever
     {
         UpdateOptions(o => o.PrimaryView = primaryView);
     }
-    public static WindowPosition? GetWindowPosition(bool pinned)
+    public static WindowPosition? GetWindowPosition() { return options.PrimaryViewPosition; }
+    public static void SetWindowPosition(int x, int y)
     {
-        return pinned ? options.PinnedViewPosition : options.PrimaryViewPosition;
+        UpdateOptions(o => o.PrimaryViewPosition = new WindowPosition { X = x, Y = y });
     }
-    public static void SetWindowPosition(bool pinned, int x, int y)
+    public static WindowSize? GetWindowSize() { return options.PrimaryViewSize; }
+    public static void SetWindowSize(int width, int height)
     {
-        WindowPosition position = new() { X = x, Y = y };
-        UpdateOptions(o =>
-        {
-            if (pinned)
-            {
-                o.PinnedViewPosition = position;
-            }
-            else
-            {
-                o.PrimaryViewPosition = position;
-            }
-        });
-    }
-    public static WindowSize? GetWindowSize(bool pinned)
-    {
-        return pinned ? options.PinnedViewSize : options.PrimaryViewSize;
-    }
-    public static void SetWindowSize(bool pinned, int width, int height)
-    {
-        WindowSize size = new() { Width = width, Height = height };
-        UpdateOptions(o =>
-        {
-            if (pinned)
-            {
-                o.PinnedViewSize = size;
-            }
-            else
-            {
-                o.PrimaryViewSize = size;
-            }
-        });
+        UpdateOptions(o => o.PrimaryViewSize = new WindowSize { Width = width, Height = height });
     }
     public static void SetGoogleEnabled(bool enabled)
     {

@@ -95,9 +95,7 @@ public sealed partial class WidgetWindow : Window
         _isUpdatingSourceControls = false;
         _isUpdatingPrimaryViewControl = true;
         EnablePrimaryView.IsOn = SettingsRetriever.GetPrimaryViewEnabled();
-        EnablePinnedView.IsOn = SettingsRetriever.GetPinnedViewEnabled();
         EnablePrimaryView.IsEnabled = false;
-        EnablePinnedView.IsEnabled = false;
         PrimaryViewSelector.SelectedIndex = SettingsRetriever.GetPrimaryView() switch
         {
             PrimaryViewEnum.Todo => 0,
@@ -147,7 +145,6 @@ public sealed partial class WidgetWindow : Window
         bool canvasConfigured = IsCanvasCalendarConfigured(SettingsRetriever.GetCanvasICSLink());
         _hasConfiguredSource = googleConfigured || canvasConfigured;
         EnablePrimaryView.IsEnabled = _hasConfiguredSource;
-        EnablePinnedView.IsEnabled = _hasConfiguredSource;
         if (!_hasConfiguredSource)
         {
             ViewSourceRequirementMessage.Text =
@@ -165,14 +162,8 @@ public sealed partial class WidgetWindow : Window
                 SettingsRetriever.SetPrimaryViewEnabled(false);
             }
 
-            if (SettingsRetriever.GetPinnedViewEnabled())
-            {
-                SettingsRetriever.SetPinnedViewEnabled(false);
-            }
-
             _isUpdatingPrimaryViewControl = true;
             EnablePrimaryView.IsOn = false;
-            EnablePinnedView.IsOn = false;
             _isUpdatingPrimaryViewControl = false;
         }
 
@@ -1071,11 +1062,6 @@ public sealed partial class WidgetWindow : Window
         if (EnablePrimaryView.IsOn) PrimaryViewEnabled(); else PrimaryViewDisabled();
     }
 
-    private void PinnedViewToggled(object sender, RoutedEventArgs e)
-    {
-        if (EnablePinnedView.IsOn) PinnedViewEnabled(); else PinnedViewDisabled();
-    }
-
     private void SourceSetupClick(object sender, RoutedEventArgs e)
     {
         string? target = (sender as FrameworkElement)?.Tag as string;
@@ -1298,35 +1284,4 @@ public sealed partial class WidgetWindow : Window
         StartAtSignInMessage.Visibility = string.IsNullOrEmpty(status.Message)
             ? Visibility.Collapsed
             : Visibility.Visible;
-    }
-
-    private void PinnedViewEnabled()
-    {
-        if (_isUpdatingPrimaryViewControl)
-        {
-            return;
-        }
-
-        if (!_hasConfiguredSource)
-        {
-            _isUpdatingPrimaryViewControl = true;
-            EnablePinnedView.IsOn = false;
-            _isUpdatingPrimaryViewControl = false;
-            return;
-        }
-
-        SettingsRetriever.SetPinnedViewEnabled(true);
-        ViewWindowManager.SyncWithSettings();
-    }
-
-    private void PinnedViewDisabled()
-    {
-        if (_isUpdatingPrimaryViewControl)
-        {
-            return;
-        }
-
-        SettingsRetriever.SetPinnedViewEnabled(false);
-        ViewWindowManager.SyncWithSettings();
-    }
-}
+    }}

@@ -247,20 +247,6 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Pin calendar view" VerticalAlignment="Center" />
-                                    <ToggleSwitch x:Name="EnablePinnedView"
-                                                  Grid.Column="1"
-                                                  OnContent="On"
-                                                  OffContent="Off"
-                                                  MinWidth="0"
-                                                  AutomationProperties.Name="Pin calendar view"
-                                                  Toggled="PinnedViewToggled" />
-                                </Grid>
-                                <Grid ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
                                     <TextBlock Text="Open calendar view at sign-in" VerticalAlignment="Center" />
                                     <ToggleSwitch x:Name="EnableStartAtSignIn"
                                                   Grid.Column="1"

@@ -55,11 +55,11 @@ The state file is a latest-value message, not a queue. If multiple selections ha
 - **Controller inactive:** add tool-window and no-activate styles, remove the caption and sizing frame, and place the window at `HWND_NOTOPMOST`. The window remains alive and is not deliberately sent behind the desktop shell.
 - Both transitions preserve the current position and size by passing `SWP_NOMOVE` and `SWP_NOSIZE`.
 
-The interop layer finds existing windows by their exact titles: `MosaiCal Day View`, `MosaiCal Week View`, and `MosaiCal Todo View`. The pinned view is similarly activated by its title. `FindWindow` returns a native handle; it does not establish ownership of the remote WinUI window.
+The interop layer finds existing windows by their exact titles: `MosaiCal Day View`, `MosaiCal Week View`, and `MosaiCal Todo View`. `FindWindow` returns a native handle; it does not establish ownership of the remote WinUI window.
 
 ## Position and Size Persistence
 
-Position and size are separate from process coordination. `WindowConfiguration.Configure` restores the primary or pinned view's saved size and position from `SettingsRetriever`. `AppWindow.Changed` persists changes, and the window's `Closed` event saves the final state.
+Position and size are separate from process coordination. `WindowConfiguration.Configure` restores the primary view's saved size and position from `SettingsRetriever`. `AppWindow.Changed` persists changes, and the window's `Closed` event saves the final state.
 
 The values are stored in `Config.json` under `%LOCALAPPDATA%\MosaiCal`. Closing the controller does not itself save or reset the calendar view's position; closing or moving/resizing the view does.
 

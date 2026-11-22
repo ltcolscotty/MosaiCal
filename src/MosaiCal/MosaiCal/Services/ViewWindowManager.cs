@@ -3,7 +3,6 @@ using MosaiCal.Models;
 using MosaiCal.Platform;
 using MosaiCal.ViewWindows;
 using MosaiCal.ViewWindows.DayView;
-using MosaiCal.ViewWindows.PinnedView;
 using MosaiCal.ViewWindows.TodoView;
 using MosaiCal.ViewWindows.WeekView;
 using System;
@@ -19,7 +18,6 @@ internal static class ViewWindowManager
 {
     private static volatile Window? primaryViewWindow;
     private static PrimaryViewEnum? primaryViewType;
-    private static PinnedViewWindow? pinnedViewWindow;
     private static volatile bool primaryViewManagerActive;
     private static volatile bool systemShutdownInProgress;
     private static readonly string managerStatePath = Path.Combine(
@@ -213,15 +211,6 @@ internal static class ViewWindowManager
         {
             ClosePrimaryView("primary view disabled in settings");
         }
-
-        if (SettingsRetriever.GetPinnedViewEnabled())
-        {
-            OpenPinnedView();
-        }
-        else
-        {
-            ClosePinnedView();
-        }
     }
 
     public static void OpenConfiguredPrimaryViewOnStartup()
@@ -406,22 +395,6 @@ internal static class ViewWindowManager
             enqueued ? LoggerStatusEnum.INFO : LoggerStatusEnum.WARNING);
     }
 
-    private static void OpenPinnedView()
-    {
-        if (pinnedViewWindow is null)
-        {
-            if (Win32Interop.TryActivateWindowByTitle("MosaiCal Pinned View"))
-            {
-                return;
-            }
-
-            pinnedViewWindow = new PinnedViewWindow();
-            pinnedViewWindow.Closed += PinnedViewClosed;
-        }
-
-        pinnedViewWindow.Activate();
-    }
-
     private static bool TryActivateExistingPrimaryView()
     {
         return SetExistingPrimaryViewMode(primaryViewManagerActive);
@@ -456,13 +429,6 @@ internal static class ViewWindowManager
         return false;
     }
 
-    private static void ClosePinnedView()
-    {
-        PinnedViewWindow? window = pinnedViewWindow;
-        pinnedViewWindow = null;
-        window?.Close();
-    }
-
     private static void PrimaryViewClosed(object sender, WindowEventArgs args)
     {
         if (ReferenceEquals(primaryViewWindow, sender))
@@ -481,13 +447,4 @@ internal static class ViewWindowManager
                 PrimaryViewClosedByUser?.Invoke();
             }
         }
-    }
-
-    private static void PinnedViewClosed(object sender, WindowEventArgs args)
-    {
-        if (ReferenceEquals(pinnedViewWindow, sender))
-        {
-            pinnedViewWindow = null;
-        }
-    }
-}
+    }}

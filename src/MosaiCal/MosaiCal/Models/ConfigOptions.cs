@@ -33,28 +33,22 @@ public class ConfigOptions
     public int BackgroundTransparency { get; set; } = 0;
     public string BackgroundColor { get; set; } = "#ff00ff";
     public string BackgroundImage { get; set; } = "";
-    public BackgroundSettingEnum BackgroundSetting { get; set; } = BackgroundSettingEnum.Color;
-    public BackgroundTypeEnum BackgroundType { get; set; } = BackgroundTypeEnum.Solid;
+    public BackgroundTypeEnum BackgroundType { get; set; } = BackgroundTypeEnum.Mica;
     public string WidgetBackgroundColor { get; set; } = "#202020";
     public BackgroundTypeEnum SettingsBackgroundType { get; set; } = BackgroundTypeEnum.Mica;
     public string SettingsBackgroundColor { get; set; } = "#202020";
     public string FontFamily {get; set; } = "Segoe UI";
-    public int FontSize { get; set; } = 12;
     public bool GoogleEnabled { get; set; } = false;
     public int GoogleMaxEventsPerRefresh { get; set; } = 200;
     public string GoogleClientId { get; set; } = "";
     public string GoogleClientSecret { get; set; } = "";
     public bool CanvasEnabled { get; set; } = false;
     public bool PrimaryViewEnabled { get; set; } = false;
-    public bool PinnedViewEnabled { get; set; } = false;
     public bool? StartupAtLoginConsent { get; set; }
     public PrimaryViewEnum PrimaryView { get; set; } = PrimaryViewEnum.Todo;
     public WindowPosition? PrimaryViewPosition { get; set; }
-    public WindowPosition? PinnedViewPosition { get; set; }
     public WindowSize? PrimaryViewSize { get; set; }
-    public WindowSize? PinnedViewSize { get; set; }
     public int TrackedDays { get; set; } = 3;
-    public List<string> PinnedEventsList { get; set; } = [];
     public int updateDurationMins { get; set; } = 720;
     public DateTimeOffset lastUpdateTime { get; set; } = DateTimeOffset.MinValue;
 

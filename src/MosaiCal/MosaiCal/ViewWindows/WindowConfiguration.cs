@@ -13,8 +13,7 @@ namespace MosaiCal.ViewWindows;
 
 internal enum ManagedWindowKind
 {
-    Primary,
-    Pinned
+    Primary
 }
 
 internal static class WindowConfiguration
@@ -48,7 +47,7 @@ internal static class WindowConfiguration
             window.Closed += (_, _) => SettingsRetriever.WidgetBackgroundChanged -= backgroundChanged;
         }
 
-        if (managedWindowKind is not ManagedWindowKind kind)
+        if (managedWindowKind is null)
         {
             return;
         }
@@ -58,14 +57,13 @@ internal static class WindowConfiguration
             window.DispatcherQueue.TryEnqueue(() => ApplyWindowTransparency(window, transparencyPercentage));
         SettingsRetriever.WindowTransparencyChanged += transparencyChanged;
 
-        bool pinned = kind == ManagedWindowKind.Pinned;
-        WindowSize? savedSize = SettingsRetriever.GetWindowSize(pinned);
+        WindowSize? savedSize = SettingsRetriever.GetWindowSize();
         Windows.Graphics.SizeInt32 size = savedSize is not null
             ? new Windows.Graphics.SizeInt32(savedSize.Width, savedSize.Height)
             : defaultSize ?? new Windows.Graphics.SizeInt32(360, 500);
         window.AppWindow.Resize(size);
 
-        WindowPosition? savedPosition = SettingsRetriever.GetWindowPosition(pinned);
+        WindowPosition? savedPosition = SettingsRetriever.GetWindowPosition();
         if (savedPosition is not null)
         {
             window.AppWindow.Move(new Windows.Graphics.PointInt32
@@ -79,25 +77,20 @@ internal static class WindowConfiguration
         {
             if (args.DidPositionChange || args.DidSizeChange)
             {
-                SaveWindowState(window, pinned);
+                SaveWindowState(window);
             }
         };
-        IDisposable? shutdownHandler = kind == ManagedWindowKind.Primary
-            ? Win32Interop.RegisterShutdownHandler(
-                WindowNative.GetWindowHandle(window),
-                ViewWindowManager.NotifySystemShutdown)
-            : null;
+        IDisposable shutdownHandler = Win32Interop.RegisterShutdownHandler(
+            WindowNative.GetWindowHandle(window),
+            ViewWindowManager.NotifySystemShutdown);
         window.Closed += (_, _) =>
         {
             SettingsRetriever.WindowTransparencyChanged -= transparencyChanged;
-            shutdownHandler?.Dispose();
-            SaveWindowState(window, pinned);
+            shutdownHandler.Dispose();
+            SaveWindowState(window);
         };
 
-        if (kind == ManagedWindowKind.Primary)
-        {
-            DesktopWidgetWindowBehavior.SetWidgetManagerActive(window, isActive: false);
-        }
+        DesktopWidgetWindowBehavior.SetWidgetManagerActive(window, isActive: false);
     }
 
     public static void ApplyWidgetBackground(Window window) =>
@@ -141,12 +134,12 @@ internal static class WindowConfiguration
         Win32Interop.SetWindowOpacity(WindowNative.GetWindowHandle(window), opacity);
     }
 
-    private static void SaveWindowState(Window window, bool pinned)
+    private static void SaveWindowState(Window window)
     {
         Windows.Graphics.PointInt32 position = window.AppWindow.Position;
         Windows.Graphics.SizeInt32 size = window.AppWindow.Size;
-        SettingsRetriever.SetWindowPosition(pinned, position.X, position.Y);
-        SettingsRetriever.SetWindowSize(pinned, size.Width, size.Height);
+        SettingsRetriever.SetWindowPosition(position.X, position.Y);
+        SettingsRetriever.SetWindowSize(size.Width, size.Height);
     }
 }
 

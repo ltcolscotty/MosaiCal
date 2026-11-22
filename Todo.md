@@ -14,9 +14,9 @@ Target: Winter 2027
 
 #### Customization
 
-- [ ] Solid color customization option for event backgrounds
-- [ ] Color selector UI
-- [ ] Good looking default config
+- [x] Solid color customization option for event backgrounds
+- [x] Color selector UI
+- [x] Good looking default config
 - [x] Darkness adjuster for images per source
 
 #### Reliability
