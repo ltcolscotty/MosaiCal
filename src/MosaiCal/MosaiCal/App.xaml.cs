@@ -4,6 +4,7 @@ using MosaiCal.ViewWindows.WidgetView;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -44,6 +45,8 @@ namespace MosaiCal
             }
 
             UnhandledException += OnUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         }
 
         [DllImport("user32.dll", EntryPoint = "MessageBoxW", CharSet = CharSet.Unicode, ExactSpelling = true)]
@@ -52,6 +55,25 @@ namespace MosaiCal
         private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
             LoggerService.LogException("Unhandled application exception", e.Exception);
+        }
+
+        private static void OnDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+        {
+            string context = $"Unhandled non-UI exception (terminating={e.IsTerminating})";
+            if (e.ExceptionObject is Exception exception)
+            {
+                LoggerService.LogException(context, exception);
+            }
+            else
+            {
+                LoggerService.Log($"{context}: {e.ExceptionObject}", LoggerStatusEnum.EXCEPTION);
+            }
+        }
+
+        private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            LoggerService.LogException("Unobserved task exception", e.Exception);
+            e.SetObserved();
         }
 
         /// <summary>
