@@ -9,11 +9,11 @@
   IgnorableNamespaces="uap rescap uap5">
 
   <Identity
-    Name="MosaiCal"
-    Publisher="CN=Aidan Yung"
-    Version="0.1.0.0" />
+    Name="AYungSoftware.MosaiCal"
+    Publisher="CN=BD182F49-EAB0-4C0A-8565-51D5E6AEBFB6"
+    Version="0.1.1.0" />
 
-  <mp:PhoneIdentity PhoneProductId="cb4faff9-004c-446d-b32a-aeb660b2a1b8" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="1e7d131f-f2c3-4866-9620-28284760f4ea" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>MosaiCal</DisplayName>
