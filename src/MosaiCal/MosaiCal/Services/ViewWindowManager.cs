@@ -220,8 +220,14 @@ internal static class ViewWindowManager
             return;
         }
 
-        primaryViewManagerActive = true;
-        OpenPrimaryView(replaceExisting: false);
+        primaryViewManagerActive = false;
+        LoggerService.Log("ViewWindowManager: Opening configured primary view on startup in widget mode.");
+        if (primaryViewWindow is not null || TryActivateExistingPrimaryView())
+        {
+            return;
+        }
+
+        CreatePrimaryViewWindow(SettingsRetriever.GetPrimaryView(), activateInWidgetMode: true);
     }
 
     private static void OpenPrimaryView(bool replaceExisting)
@@ -263,7 +269,7 @@ internal static class ViewWindowManager
         }
     }
 
-    private static void CreatePrimaryViewWindow(PrimaryViewEnum selectedView)
+    private static void CreatePrimaryViewWindow(PrimaryViewEnum selectedView, bool activateInWidgetMode = false)
     {
         primaryViewWindow = selectedView switch
         {
@@ -280,6 +286,10 @@ internal static class ViewWindowManager
         if (primaryViewManagerActive)
         {
             primaryViewWindow.Activate();
+        }
+        else if (activateInWidgetMode) {
+            primaryViewWindow.Activate();
+            DesktopWidgetWindowBehavior.SetWidgetManagerActive(primaryViewWindow, isActive: false);
         }
     }
 
